@@ -734,6 +734,54 @@ body.light-theme .qb-arrow {
   transform: scale(1.06);
 }
 
+/* [PlaySphere Enhancement]: Prominent, Responsive Back to Home Button */
+.btn-icon-back.btn-back-home {
+  width: auto;
+  min-width: 68px;
+  height: 36px;
+  padding: 0 12px 0 8px;
+  border-radius: var(--radius-full);
+  gap: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-card);
+  border: 1.5px solid var(--border-color);
+  color: var(--text-main);
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  box-shadow: var(--shadow-sm);
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.btn-icon-back.btn-back-home .back-arrow {
+  font-size: 1.35rem;
+  font-weight: 800;
+  line-height: 1;
+  margin-top: -2px;
+}
+
+.btn-icon-back.btn-back-home .back-text {
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.btn-icon-back.btn-back-home:hover {
+  background: linear-gradient(135deg, var(--primary), var(--accent));
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 4px 12px var(--primary-glow);
+  transform: translateY(-1px);
+}
+
+.btn-icon-back.btn-back-home:active {
+  transform: translateY(0) scale(0.97);
+}
+
 .game-bar-center {
   display: flex;
   flex-direction: column;
@@ -1145,13 +1193,34 @@ body.light-theme .player-pod.active-turn {
   white-space: nowrap;
 }
 
-/* In-Game Full Viewport Arena Mode (Eliminating Unused Space) */
+/* ==========================================================================
+   [PlaySphere Enhancement]: In-Game Viewport Mode & Scroll Locking
+   - Locks outer screen bounce/rubber-banding on touch devices
+   - Prevents pull-to-refresh reload while match is active
+   - Keeps HUD and game boards responsive and centered
+   ========================================================================== */
+body.in-game-screen,
+body.game-scroll-locked {
+  overscroll-behavior: none !important;
+  overscroll-behavior-y: contain !important;
+  touch-action: manipulation;
+}
+
+html.game-refresh-locked,
+body.game-refresh-locked {
+  overscroll-behavior-y: contain !important;
+  overscroll-behavior: none !important;
+}
+
 body.in-game-screen .app-bottom-nav {
   display: none !important;
 }
 
 body.in-game-screen .app-main-content {
   padding-bottom: 0 !important;
+  overscroll-behavior: contain !important;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
 }
 
 #screen-ludo.active,
@@ -2220,7 +2289,7 @@ body.light-theme .form-input:focus {
   justify-content: center;
   gap: 3px;
   cursor: pointer;
-  padding: 6px 14px;
+  padding: 6px 10px;
   border-radius: var(--radius-md);
   transition: all 0.2s ease;
   position: relative;
@@ -3537,18 +3606,50 @@ body.light-theme .rule-card.pro-tip {
 
 #confetti-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 9999; }
 
-@media (max-width: 480px) {
-  body.mobile-bezel-mode .app-mobile-container { height: 100vh; border: none; border-radius: 0; max-width: 100%; }
-  .device-toolbar { display: none; }
-  .app-viewport-wrapper { padding: 0; }
+/* ==========================================================================
+   [PlaySphere Enhancement]: Mobile Responsiveness & Viewport Lock
+   - Ensures full-screen mobile app experience on smartphones
+   - Prevents outside container bouncing, horizontal jitter, and scroll traps
+   ========================================================================== */
+@media (max-width: 640px) {
+  body.mobile-bezel-mode .app-mobile-container,
+  body:not(.mobile-bezel-mode) .app-mobile-container {
+    height: 100vh;
+    height: 100dvh;
+    border: none !important;
+    border-radius: 0 !important;
+    max-width: 100% !important;
+    box-shadow: none !important;
+  }
+  .device-toolbar {
+    display: none !important;
+  }
+  .app-viewport-wrapper {
+    padding: 0 !important;
+    height: 100vh;
+    height: 100dvh;
+  }
   .segment-opt span {
     font-size: 0.72rem;
   }
+  /* Lock body scrolling on mobile during game */
+  body.in-game-screen,
+  body.game-scroll-locked {
+    position: fixed;
+    width: 100%;
+    height: 100%;
+    overflow: hidden !important;
+  }
 }
 
-@media (max-width: 640px) {
-  .segment-opt span {
-    font-size: 0.72rem;
+@media (max-width: 480px) {
+  .btn-icon-back.btn-back-home {
+    min-width: 60px;
+    height: 34px;
+    padding: 0 10px 0 6px;
+  }
+  .btn-icon-back.btn-back-home .back-text {
+    font-size: 0.75rem;
   }
 }
 
