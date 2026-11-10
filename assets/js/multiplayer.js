@@ -31,6 +31,7 @@ class MultiplayerManager {
     this.heartbeatInterval = null;
     this.handshakeInterval = null;
     this.roomWatcherInterval = null;
+    this.cloudEventSource = null;
     this.hostAckReceived = false;
     this.retryCount = 0;
     this.maxRetries = 10;
@@ -92,6 +93,71 @@ class MultiplayerManager {
     });
   }
 
+  // =========================================================================
+  // Real-Time Online Cloud Relay (Works globally across different phones/devices)
+  // =========================================================================
+  initCloudRelay() {
+    this.closeCloudRelay();
+    if (!this.roomCode) return;
+    const clean = this.getCleanCode(this.roomCode).toLowerCase();
+    const topic = `playsphere_room_${clean}`;
+    const sseUrl = `https://ntfy.sh/${topic}/sse`;
+
+    try {
+      if (typeof EventSource !== 'undefined') {
+        this.cloudEventSource = new EventSource(sseUrl);
+        this.cloudEventSource.onmessage = (event) => {
+          try {
+            const parsed = JSON.parse(event.data);
+            if (parsed && parsed.message) {
+              const innerData = JSON.parse(parsed.message);
+              this.handleIncomingMessage(innerData);
+            } else if (parsed && parsed.action) {
+              this.handleIncomingMessage(parsed);
+            }
+          } catch (e) {
+            try {
+              const rawData = JSON.parse(event.data);
+              this.handleIncomingMessage(rawData);
+            } catch (err) {}
+          }
+        };
+        this.cloudEventSource.onerror = (e) => {
+          console.warn('[Multiplayer] Cloud relay reconnecting...', e);
+        };
+        console.log(`[Multiplayer] Cloud real-time relay connected on topic: ${topic}`);
+      }
+    } catch (e) {
+      console.warn('[Multiplayer] Cloud relay init error:', e);
+    }
+  }
+
+  closeCloudRelay() {
+    if (this.cloudEventSource) {
+      try { this.cloudEventSource.close(); } catch (e) {}
+      this.cloudEventSource = null;
+    }
+  }
+
+  sendCloudRelay(message) {
+    if (!this.roomCode) return;
+    const clean = this.getCleanCode(this.roomCode).toLowerCase();
+    const topic = `playsphere_room_${clean}`;
+    const url = `https://ntfy.sh/${topic}`;
+
+    try {
+      if (typeof fetch !== 'undefined') {
+        fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(message)
+        }).catch(err => {
+          console.warn('[Multiplayer] Cloud relay post error:', err);
+        });
+      }
+    } catch (e) {}
+  }
+
   checkUrlForRoom() {
     const params = new URLSearchParams(window.location.search);
     const room = params.get('room');
@@ -135,6 +201,7 @@ class MultiplayerManager {
       timestamp: Date.now()
     });
     this.startRoomStateWatcher();
+    this.initCloudRelay();
 
     const hostPeerId = `playsphere-${this.roomCode}-host`;
     this.initPeerConnection(hostPeerId, (assignedId) => {
@@ -188,6 +255,20 @@ class MultiplayerManager {
       timestamp: Date.now()
     });
     this.startRoomStateWatcher();
+
+    // Connect to Cloud Relay so devices on different phones/networks connect instantly!
+    this.initCloudRelay();
+    this.sendCloudRelay({
+      action: 'PLAYER_JOINED',
+      type: 'PLAYER_JOINED',
+      roomCode: this.roomCode,
+      senderSlot: 2,
+      gameType: this.gameType,
+      guestName: this.guestName,
+      guestAvatar: this.guestAvatar,
+      hostName: this.hostName,
+      timestamp: Date.now()
+    });
 
     const guestPeerId = `playsphere-${this.roomCode}-guest-${Date.now().toString(36)}`;
 
@@ -473,6 +554,10 @@ class MultiplayerManager {
       timestamp: Date.now()
     };
 
+    // 1. Post to Cloud Relay (works globally on mobile 4G/5G and GitHub Pages)
+    this.sendCloudRelay(message);
+
+    // 2. Send via WebRTC DataChannel (P2P direct)
     if (this.conn && this.conn.open) {
       try {
         this.conn.send(message);
@@ -481,6 +566,7 @@ class MultiplayerManager {
       }
     }
 
+    // 3. Local cross-tab broadcast
     this.broadcast(message);
   }
 
@@ -498,8 +584,9 @@ class MultiplayerManager {
 
   handleIncomingMessage(data) {
     if (!data || !this.roomCode) return;
-    if (data.roomCode !== this.roomCode) return;
-    if (data.senderSlot === this.localPlayerSlot) return;
+    const incomingCode = this.getCleanCode(data.roomCode || data.code);
+    if (incomingCode !== this.getCleanCode(this.roomCode)) return;
+    if (data.senderSlot && data.senderSlot === this.localPlayerSlot) return;
 
     if (data.action === 'PING') return;
 
@@ -576,6 +663,7 @@ class MultiplayerManager {
     this.stopHeartbeat();
     this.stopRoomStateWatcher();
     this.stopGuestHandshake();
+    this.closeCloudRelay();
     if (this.roomCode) {
       try {
         localStorage.removeItem(`playsphere_room_${this.roomCode}`);
