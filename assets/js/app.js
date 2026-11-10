@@ -10,6 +10,7 @@ class App {
     this.pendingGameType = null;
     this.onlineActionType = 'create'; // 'create' | 'join'
     this.pendingJoinData = null; // { roomCode, gameType, hostName }
+    this.isBypassingUnloadPrompt = false; // Flag to allow intentional back-to-home reload without popup
     this.init();
   }
 
@@ -29,6 +30,8 @@ class App {
 
     // Setup event listeners
     this.setupNavigation();
+    this.setupBackHomeButtons();
+    this.setupGameRefreshLock();
     this.setupThemeToggle();
     this.setupSettingsEvents();
     this.setupProfileEvents();
@@ -57,11 +60,186 @@ class App {
     });
   }
 
+  /* [PlaySphere Enhancement]: Check if active game or online match is in progress */
+  isGameActive() {
+    const screen = this.currentScreen;
+    if (screen === 'ludo') {
+      return Boolean(window.ludoGame && window.ludoGame.gameActive);
+    }
+    if (screen === 'tictactoe') {
+      return Boolean(window.ticTacToeGame && window.ticTacToeGame.gameActive);
+    }
+    if (screen === 'chess') {
+      return Boolean(window.chessGame && window.chessGame.gameActive);
+    }
+    if (['ludo', 'tictactoe', 'chess'].includes(screen)) {
+      if (window.multiplayerManager && window.multiplayerManager.isMatchStarted && window.multiplayerManager.roomCode) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /* [PlaySphere Enhancement]: Central Return-to-Home & Clean Page Auto-Refresh */
+  returnToHome(forceReload = true) {
+    const wasActive = this.isGameActive();
+
+    // 1. If match is active, ask for user confirmation
+    if (wasActive) {
+      const confirmExit = window.confirm('Exit match to Home? Your current game progress will be forfeited.');
+      if (!confirmExit) return;
+    }
+
+    // Set flag so beforeunload handler does not block the clean reload
+    this.isBypassingUnloadPrompt = true;
+
+    // 2. Notify multiplayer opponent & leave room if active
+    if (window.multiplayerManager && window.multiplayerManager.roomCode) {
+      const isHost = window.multiplayerManager.isHost;
+      const name = isHost ? window.multiplayerManager.hostName : window.multiplayerManager.guestName;
+      try {
+        window.multiplayerManager.sendAction('PLAYER_LEFT', {
+          sender: isHost ? 'host' : 'guest',
+          name,
+          reason: 'returned_to_home'
+        });
+      } catch (err) {
+        console.warn('[App] Could not send PLAYER_LEFT:', err);
+      }
+      try {
+        window.multiplayerManager.leaveRoom(false);
+      } catch (err) {
+        console.warn('[App] Could not leave room:', err);
+      }
+    }
+
+    // 3. Deactivate game engines & clear active timers
+    if (window.ludoGame) {
+      window.ludoGame.gameActive = false;
+      if (window.ludoGame.turnTimer) clearInterval(window.ludoGame.turnTimer);
+      if (window.ludoGame.aiMoveTimeout) clearTimeout(window.ludoGame.aiMoveTimeout);
+    }
+    if (window.ticTacToeGame) {
+      window.ticTacToeGame.gameActive = false;
+    }
+    if (window.chessGame) {
+      window.chessGame.gameActive = false;
+      if (window.chessGame.timerInterval) clearInterval(window.chessGame.timerInterval);
+    }
+
+    // 4. Clear active room headers
+    ['ludo', 'ttt', 'chess'].forEach(g => this.updateActiveRoomHeader(g, null));
+
+    // 5. Close all modals and remove scroll lock classes
+    document.querySelectorAll('.app-modal.open').forEach(m => m.classList.remove('open'));
+    document.body.classList.remove('in-game-screen', 'game-scroll-locked', 'game-refresh-locked');
+    document.documentElement.classList.remove('game-refresh-locked');
+
+    // 6. Clean URL parameters (removes ?room=... & ?game=...) so invite modal doesn't pop up again
+    if (window.history && window.history.replaceState) {
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+
+    // 7. Auto-refresh page to clean Home state
+    if (forceReload) {
+      const cleanUrl = window.location.href.split('?')[0].split('#')[0];
+      if (window.location.href === cleanUrl) {
+        window.location.reload();
+      } else {
+        window.location.href = cleanUrl;
+      }
+    } else {
+      this.navigate('home');
+    }
+  }
+
+  /* [PlaySphere Enhancement]: Setup Game Refresh Lock & Mobile Scroll Lock Protection */
+  setupGameRefreshLock() {
+    // 1. Browser reload & leave prevention (beforeunload)
+    window.addEventListener('beforeunload', (e) => {
+      if (this.isBypassingUnloadPrompt) return;
+      if (this.isGameActive()) {
+        e.preventDefault();
+        e.returnValue = 'A game is currently in progress! If you leave or reload the page, your match will be forfeited.';
+        return e.returnValue;
+      }
+    });
+
+    // 2. Prevent accidental refresh shortcuts (F5, Ctrl+R, Command+R) while game is active
+    window.addEventListener('keydown', (e) => {
+      if (this.isGameActive()) {
+        const isReload = (e.key === 'F5') ||
+          ((e.ctrlKey || e.metaKey) && (e.key === 'r' || e.key === 'R'));
+        if (isReload) {
+          e.preventDefault();
+          this.showToast('🔒 Game in progress! Page refresh is locked to prevent forfeit.', 'warning');
+        }
+      }
+    });
+
+    // 3. Mobile pull-to-refresh prevention on touch devices
+    let touchStartY = 0;
+    window.addEventListener('touchstart', (e) => {
+      if (e.touches && e.touches.length === 1) {
+        touchStartY = e.touches[0].clientY;
+      }
+    }, { passive: true });
+
+    window.addEventListener('touchmove', (e) => {
+      if (this.isGameActive()) {
+        const touchY = e.touches[0].clientY;
+        const isPullingDown = touchY > touchStartY;
+        const mainContent = document.querySelector('.app-main-content');
+        const isAtTop = !mainContent || mainContent.scrollTop <= 0;
+
+        if (isPullingDown && isAtTop && e.cancelable) {
+          // Lock mobile pull-to-refresh reload while in active match
+          e.preventDefault();
+        }
+      }
+    }, { passive: false });
+
+    // Periodic state updater to keep DOM classes in sync with gameActive
+    setInterval(() => {
+      this.updateGameLockState();
+    }, 400);
+  }
+
+  /* [PlaySphere Enhancement]: Sync CSS classes for responsive device scroll locking & refresh lock */
+  updateGameLockState() {
+    const active = this.isGameActive();
+    const inGame = ['ludo', 'chess', 'tictactoe'].includes(this.currentScreen);
+
+    document.body.classList.toggle('in-game-screen', inGame);
+    document.body.classList.toggle('game-scroll-locked', inGame || active);
+    document.body.classList.toggle('game-refresh-locked', active);
+    document.documentElement.classList.toggle('game-refresh-locked', active);
+  }
+
+  /* [PlaySphere Enhancement]: Wire all explicit Back to Home buttons */
+  setupBackHomeButtons() {
+    ['btn-back-ludo', 'btn-back-ttt', 'btn-back-chess'].forEach(id => {
+      const btn = document.getElementById(id);
+      if (btn) {
+        btn.addEventListener('click', (e) => {
+          e.preventDefault();
+          this.returnToHome(true);
+        });
+      }
+    });
+  }
+
   navigate(screenId) {
     if (this.currentScreen === screenId) return;
 
-    // If currently inside an active online game and navigating away (e.g. to home):
+    // [PlaySphere Enhancement]: If currently inside a game and navigating to home, trigger clean return & auto-refresh
     const isCurrentGame = ['ludo', 'chess', 'tictactoe'].includes(this.currentScreen);
+    if (screenId === 'home' && isCurrentGame) {
+      this.returnToHome(true);
+      return;
+    }
+
+    // If currently inside an active online game and navigating away (e.g. to stats/profile):
     if (isCurrentGame && screenId !== this.currentScreen && window.multiplayerManager && window.multiplayerManager.roomCode) {
       const isHost = window.multiplayerManager.isHost;
       const name = isHost ? window.multiplayerManager.hostName : window.multiplayerManager.guestName;
@@ -111,7 +289,12 @@ class App {
       el.addEventListener('click', (e) => {
         e.preventDefault();
         const screen = el.getAttribute('data-navigate');
-        this.navigate(screen);
+        // [PlaySphere Enhancement]: If navigating to Home from any active game, perform clean return & auto-refresh
+        if (screen === 'home' && ['ludo', 'chess', 'tictactoe'].includes(this.currentScreen)) {
+          this.returnToHome(true);
+        } else {
+          this.navigate(screen);
+        }
       });
     });
 
@@ -693,22 +876,25 @@ class App {
     // 2) SHOW and Upgrade Start button to prominent green "START MATCH WITH [FRIEND] 🚀"
     // 3) Only room owner (Host) can click to start!
     window.multiplayerManager.onPlayerJoined = (guestName, guestAvatar) => {
-      this.showToast(`🎉 ${guestName || 'Friend'} joined your room!`, 'success');
+      const friendDisplayName = (guestName && guestName.trim()) ? guestName.trim() : 'Friend';
+      this.showToast(`🎉 ${friendDisplayName} joined your room!`, 'success');
       window.soundEngine?.playCelebration();
 
-      // Update status strip
-      if (waitingText) waitingText.innerHTML = `<strong>${guestName}</strong> is connected & ready to play!`;
+      // Update status strip with prominent friend name
+      if (waitingText) {
+        waitingText.innerHTML = `<span style="color: #10b981; font-weight: 800; font-size: 0.95rem;">🎉 ${friendDisplayName} is connected &amp; ready to play!</span>`;
+      }
       if (statusDot) {
         statusDot.style.background = '#10b981';
-        statusDot.style.boxShadow = '0 0 12px #10b981';
+        statusDot.style.boxShadow = '0 0 14px #10b981';
       }
 
-      // Show friend card
+      // Show friend card with actual friend name and avatar
       if (friendCard) {
         friendCard.style.display = 'flex';
         const nameEl = document.getElementById('lobby-friend-name');
         const avatarEl = document.getElementById('lobby-friend-avatar');
-        if (nameEl) nameEl.textContent = guestName;
+        if (nameEl) nameEl.textContent = friendDisplayName;
         if (avatarEl) avatarEl.textContent = guestAvatar || '🦊';
       }
 
@@ -719,7 +905,7 @@ class App {
         startBtn.disabled = false;
         startBtn.classList.add('friend-ready');
         if (startBtnText) {
-          startBtnText.textContent = `START MATCH WITH ${guestName.toUpperCase()} 🚀`;
+          startBtnText.textContent = `START MATCH WITH ${friendDisplayName.toUpperCase()} 🚀`;
         }
         startBtn.onclick = () => {
           window.soundEngine?.playClick();
@@ -727,7 +913,7 @@ class App {
           // Broadcast match start to guest
           window.multiplayerManager.sendStartMatch();
           modal.classList.remove('open');
-          this.startGameWithMode(gameType || window.multiplayerManager.gameType, 'online', hostName, guestName);
+          this.startGameWithMode(gameType || window.multiplayerManager.gameType, 'online', hostName, friendDisplayName);
         };
       }
     };
@@ -1079,8 +1265,8 @@ class App {
           icon: '🚪',
           confirmText: 'Back to Home 🏠',
           onConfirm: () => {
-            ['ludo', 'ttt', 'chess'].forEach(g => this.updateActiveRoomHeader(g, null));
-            this.navigate('home');
+            // [PlaySphere Enhancement]: Clean return to Home & auto-refresh
+            this.returnToHome(true);
           }
         });
 
@@ -1116,8 +1302,8 @@ class App {
           icon: '🏠',
           confirmText: 'Back to Home 🏠',
           onConfirm: () => {
-            ['ludo', 'ttt', 'chess'].forEach(g => this.updateActiveRoomHeader(g, null));
-            this.navigate('home');
+            // [PlaySphere Enhancement]: Clean return to Home & auto-refresh
+            this.returnToHome(true);
           }
         });
 
@@ -1157,7 +1343,7 @@ class App {
               name: window.multiplayerManager.guestName,
               reason: 'declined_rematch'
             });
-            this.navigate('home');
+            this.returnToHome(true);
           }
         }
       );
@@ -1182,6 +1368,52 @@ class App {
       const guest = payload?.guestName || window.multiplayerManager.guestName || 'Friend';
       this.showToast(`🚀 Match started by ${host}! Let's Play!`, 'success');
       this.startGameWithMode(gType, 'online', host, guest);
+    };
+
+    // 5. Global handler when opponent connects
+    window.multiplayerManager.onPlayerJoined = (guestName, guestAvatar) => {
+      const friendDisplayName = (guestName && guestName.trim()) ? guestName.trim() : 'Friend';
+      this.showToast(`🎉 ${friendDisplayName} joined your room!`, 'success');
+      window.soundEngine?.playCelebration();
+
+      const waitingText = document.getElementById('lobby-waiting-text');
+      const statusDot = document.getElementById('lobby-status-dot');
+      const friendCard = document.getElementById('lobby-friend-card');
+      const hostFooter = document.getElementById('lobby-host-footer');
+      const startBtn = document.getElementById('btn-start-room-now');
+      const startBtnText = document.getElementById('btn-start-room-text');
+
+      if (waitingText) {
+        waitingText.innerHTML = `<span style="color: #10b981; font-weight: 800; font-size: 0.95rem;">🎉 ${friendDisplayName} is connected &amp; ready to play!</span>`;
+      }
+      if (statusDot) {
+        statusDot.style.background = '#10b981';
+        statusDot.style.boxShadow = '0 0 14px #10b981';
+      }
+      if (friendCard) {
+        friendCard.style.display = 'flex';
+        const nameEl = document.getElementById('lobby-friend-name');
+        const avatarEl = document.getElementById('lobby-friend-avatar');
+        if (nameEl) nameEl.textContent = friendDisplayName;
+        if (avatarEl) avatarEl.textContent = guestAvatar || '🦊';
+      }
+      if (hostFooter) hostFooter.style.display = 'flex';
+      if (startBtn) {
+        startBtn.style.display = 'flex';
+        startBtn.disabled = false;
+        startBtn.classList.add('friend-ready');
+        if (startBtnText) {
+          startBtnText.textContent = `START MATCH WITH ${friendDisplayName.toUpperCase()} 🚀`;
+        }
+        startBtn.onclick = () => {
+          window.soundEngine?.playClick();
+          window.multiplayerManager.isMatchStarted = true;
+          window.multiplayerManager.sendStartMatch();
+          document.getElementById('modal-room-lobby')?.classList.remove('open');
+          const gType = this.pendingGameType || window.multiplayerManager.gameType || 'ludo';
+          this.startGameWithMode(gType, 'online', window.multiplayerManager.hostName, friendDisplayName);
+        };
+      }
     };
   }
 
@@ -1373,7 +1605,8 @@ class App {
 
     homeBtn.onclick = () => {
       modal.classList.remove('open');
-      this.navigate('home');
+      // [PlaySphere Enhancement]: Back to home from Game Over cleanly resets state & auto-refreshes
+      this.returnToHome(true);
     };
 
     modal.classList.add('open');
