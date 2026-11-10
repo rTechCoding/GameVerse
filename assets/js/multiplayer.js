@@ -29,6 +29,9 @@ class MultiplayerManager {
     this.onRematchAccepted = null;
     this.onStatusChange = null;
     this.heartbeatInterval = null;
+    this.handshakeInterval = null;
+    this.roomWatcherInterval = null;
+    this.hostAckReceived = false;
     this.retryCount = 0;
     this.maxRetries = 10;
 
@@ -121,6 +124,18 @@ class MultiplayerManager {
     this.connected = false;
     this.isMatchStarted = false;
 
+    // Synchronize room state for instant cross-tab / local detection
+    this.updateRoomState({
+      roomCode: this.roomCode,
+      gameType: this.gameType,
+      hostName: this.hostName,
+      hostAvatar: this.hostAvatar,
+      guestJoined: false,
+      status: 'waiting',
+      timestamp: Date.now()
+    });
+    this.startRoomStateWatcher();
+
     const hostPeerId = `playsphere-${this.roomCode}-host`;
     this.initPeerConnection(hostPeerId, (assignedId) => {
       console.log(`[Multiplayer] Host room created with Peer ID: ${assignedId}`);
@@ -158,7 +173,21 @@ class MultiplayerManager {
     this.hostName = hostName;
     this.connected = false;
     this.isMatchStarted = false;
+    this.hostAckReceived = false;
     this.retryCount = 0;
+
+    // Immediately update room state in shared storage so host detects guest instantly!
+    this.updateRoomState({
+      roomCode: this.roomCode,
+      gameType: this.gameType,
+      hostName: this.hostName,
+      guestJoined: true,
+      guestName: this.guestName,
+      guestAvatar: this.guestAvatar,
+      status: 'connected',
+      timestamp: Date.now()
+    });
+    this.startRoomStateWatcher();
 
     const guestPeerId = `playsphere-${this.roomCode}-guest-${Date.now().toString(36)}`;
 
@@ -172,13 +201,19 @@ class MultiplayerManager {
 
     // Also broadcast to local channel (for same-device multi-tab testing)
     this.broadcast({
+      action: 'PLAYER_JOINED',
       type: 'PLAYER_JOINED',
       roomCode: this.roomCode,
+      senderSlot: 2,
       gameType: this.gameType,
       guestName: this.guestName,
       guestAvatar: this.guestAvatar,
-      hostName: this.hostName
+      hostName: this.hostName,
+      timestamp: Date.now()
     });
+
+    // Start repeating handshake until acknowledged
+    this.startGuestHandshake();
 
     if (this.onStatusChange) {
       this.onStatusChange({
@@ -264,9 +299,10 @@ class MultiplayerManager {
   setupConnectionHandlers() {
     if (!this.conn) return;
 
-    this.conn.on('open', () => {
+    const onChannelOpen = () => {
       console.log('[Multiplayer] WebRTC DataChannel successfully OPENED between devices!');
       this.connected = true;
+      this.isMatchStarted = true;
       this.startHeartbeat();
 
       if (this.onStatusChange) {
@@ -275,18 +311,19 @@ class MultiplayerManager {
 
       if (!this.isHost) {
         // Send handshake from guest to host
-        this.sendAction('PLAYER_JOINED', {
-          roomCode: this.roomCode,
-          guestName: this.guestName,
-          guestAvatar: this.guestAvatar,
-          hostName: this.hostName
-        });
+        this.startGuestHandshake();
       } else {
         if (this.onPlayerJoined) {
           this.onPlayerJoined(this.guestName, this.guestAvatar);
         }
       }
-    });
+    };
+
+    if (this.conn.open) {
+      onChannelOpen();
+    } else {
+      this.conn.on('open', onChannelOpen);
+    }
 
     this.conn.on('data', (data) => {
       this.handleIncomingMessage(data);
@@ -312,6 +349,83 @@ class MultiplayerManager {
     });
   }
 
+  startGuestHandshake() {
+    this.stopGuestHandshake();
+    const send = () => {
+      if (this.hostAckReceived || (this.connected && this.isMatchStarted)) {
+        this.stopGuestHandshake();
+        return;
+      }
+      this.sendAction('PLAYER_JOINED', {
+        roomCode: this.roomCode,
+        guestName: this.guestName,
+        guestAvatar: this.guestAvatar,
+        hostName: this.hostName
+      });
+    };
+    send();
+    this.handshakeInterval = setInterval(send, 800);
+  }
+
+  stopGuestHandshake() {
+    if (this.handshakeInterval) {
+      clearInterval(this.handshakeInterval);
+      this.handshakeInterval = null;
+    }
+  }
+
+  startRoomStateWatcher() {
+    this.stopRoomStateWatcher();
+    this.roomWatcherInterval = setInterval(() => {
+      if (!this.roomCode) return;
+      try {
+        const raw = localStorage.getItem(`playsphere_room_${this.roomCode}`);
+        if (!raw) return;
+        const data = JSON.parse(raw);
+
+        if (this.isHost) {
+          if (data.guestJoined && !this.connected) {
+            console.log('[Multiplayer] Guest joined detected via room state watcher:', data.guestName);
+            this.connected = true;
+            this.isMatchStarted = true;
+            if (data.guestName) this.guestName = data.guestName;
+            if (data.guestAvatar) this.guestAvatar = data.guestAvatar;
+            if (this.onPlayerJoined) {
+              this.onPlayerJoined(this.guestName, this.guestAvatar);
+            }
+          }
+        } else {
+          // Guest watching for match start
+          if (data.matchStarted && !this.isMatchStarted) {
+            console.log('[Multiplayer] Match start detected via room state watcher');
+            this.connected = true;
+            this.isMatchStarted = true;
+            if (this.onMatchStarted) {
+              this.onMatchStarted(data);
+            }
+          }
+        }
+      } catch (e) {}
+    }, 400);
+  }
+
+  stopRoomStateWatcher() {
+    if (this.roomWatcherInterval) {
+      clearInterval(this.roomWatcherInterval);
+      this.roomWatcherInterval = null;
+    }
+  }
+
+  updateRoomState(updates = {}) {
+    if (!this.roomCode) return;
+    try {
+      const key = `playsphere_room_${this.roomCode}`;
+      const existing = JSON.parse(localStorage.getItem(key) || '{}');
+      const merged = Object.assign(existing, updates, { updatedAt: Date.now() });
+      localStorage.setItem(key, JSON.stringify(merged));
+    } catch (e) {}
+  }
+
   startHeartbeat() {
     this.stopHeartbeat();
     this.heartbeatInterval = setInterval(() => {
@@ -332,6 +446,14 @@ class MultiplayerManager {
 
   sendStartMatch() {
     this.isMatchStarted = true;
+    this.updateRoomState({
+      matchStarted: true,
+      gameType: this.gameType,
+      hostName: this.hostName,
+      hostAvatar: this.hostAvatar,
+      guestName: this.guestName,
+      guestAvatar: this.guestAvatar
+    });
     this.sendAction('START_ONLINE_MATCH', {
       gameType: this.gameType,
       hostName: this.hostName,
@@ -369,7 +491,8 @@ class MultiplayerManager {
       } catch (e) {}
     }
     try {
-      localStorage.setItem('playsphere_remote_action', JSON.stringify(message));
+      const envelope = Object.assign({}, message, { _ts: Date.now(), _rand: Math.random() });
+      localStorage.setItem('playsphere_remote_action', JSON.stringify(envelope));
     } catch (e) {}
   }
 
@@ -400,6 +523,8 @@ class MultiplayerManager {
     }
 
     if (data.action === 'HOST_ACK') {
+      this.hostAckReceived = true;
+      this.stopGuestHandshake();
       this.connected = true;
       this.isMatchStarted = true;
       if (data.payload?.hostName) this.hostName = data.payload.hostName;
@@ -449,6 +574,13 @@ class MultiplayerManager {
 
   leaveRoom(notifyPeer = false) {
     this.stopHeartbeat();
+    this.stopRoomStateWatcher();
+    this.stopGuestHandshake();
+    if (this.roomCode) {
+      try {
+        localStorage.removeItem(`playsphere_room_${this.roomCode}`);
+      } catch (e) {}
+    }
     if (notifyPeer && this.roomCode) {
       const sender = this.isHost ? 'host' : 'guest';
       const name = this.isHost ? this.hostName : this.guestName;
