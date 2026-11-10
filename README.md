@@ -1,4 +1,4 @@
-# 🎮 PlaySphere — Professional Multi-Game Gaming App (v3.0 Pro)
+# 🎮 GameVerse — Professional Multi-Game Gaming App (v3.0 Pro)
 
 An authentic, modern, and premium **Multi-Game Gaming Application** with a mobile-first app UI/UX, accurate realistic boards, online room codes & shareable multiplayer links, 3D animations, sound synthesis, and computer AI.
 
