@@ -442,6 +442,21 @@ class App {
         if (joinSubBox) joinSubBox.style.display = 'flex';
         if (onlineHint) onlineHint.style.display = 'none';
         this.onlineActionType = 'join';
+        const codeInput = document.getElementById('input-join-room-code');
+        if (codeInput) {
+          codeInput.focus();
+        }
+      });
+    }
+
+    const codeInput = document.getElementById('input-join-room-code');
+    if (codeInput) {
+      codeInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          window.soundEngine.playClick();
+          this.executeDirectJoin(codeInput.value);
+        }
       });
     }
 
@@ -449,20 +464,10 @@ class App {
     if (btnConfirmJoin) {
       btnConfirmJoin.addEventListener('click', (e) => {
         e.preventDefault();
+        window.soundEngine.playClick();
         const codeInput = document.getElementById('input-join-room-code');
-        const code = codeInput ? codeInput.value.trim().toUpperCase() : '';
-        if (code.length < 4) {
-          this.showPopup({
-            title: 'Invalid Room Code ⚠️',
-            message: 'Please enter a valid 6-character room code to connect with your friend.',
-            type: 'warning',
-            icon: '⚠️',
-            confirmText: 'Try Again'
-          });
-          return;
-        }
-        this.closeGameSetup();
-        this.openJoinGameWithNameModal(code, this.pendingGameType || 'ludo', 'Host');
+        const code = codeInput ? codeInput.value : '';
+        this.executeDirectJoin(code);
       });
     }
 
@@ -535,20 +540,48 @@ class App {
     }
   }
 
+  executeDirectJoin(code) {
+    const cleanCode = (code || '').toUpperCase().replace(/[^A-Z0-9]/g, '').trim();
+    if (!cleanCode || cleanCode.length < 4) {
+      this.showPopup({
+        title: 'Invalid Room Code ⚠️',
+        message: 'Please enter a valid 6-character room code to connect with your friend.',
+        type: 'warning',
+        icon: '⚠️',
+        confirmText: 'Try Again'
+      });
+      return;
+    }
+
+    const type = this.pendingGameType || 'ludo';
+    const guestName = document.getElementById('setup-player1-name')?.value.trim() || 
+                      window.gameStorage.getProfile().name || 'Player 2';
+
+    this.closeGameSetup();
+    document.getElementById('modal-join-game-with-name')?.classList.remove('open');
+
+    this.showToast(`⚡ Connecting to room ${cleanCode}...`, 'info');
+    window.multiplayerManager.joinRoom(cleanCode, type, guestName, 'Host');
+    this.updateActiveRoomHeader(type, cleanCode);
+
+    // Launch game screen immediately
+    this.startGameWithMode(type, 'online', 'Host', guestName);
+  }
+
   launchConfiguredGame() {
     const mode = document.querySelector('input[name="global-play-mode"]:checked')?.value || 'ai';
     const type = this.pendingGameType;
 
     if (mode === 'online') {
-      if (this.onlineActionType === 'join') {
-        const codeInput = document.getElementById('input-join-room-code');
-        const code = codeInput ? codeInput.value.trim().toUpperCase() : '';
-        if (code) {
-          this.closeGameSetup();
-          this.openJoinGameWithNameModal(code, type, 'Host');
-          return;
-        }
+      const codeInput = document.getElementById('input-join-room-code');
+      const code = codeInput ? codeInput.value.trim() : '';
+
+      // If join tab is selected or user typed a code into the box, join immediately!
+      if (this.onlineActionType === 'join' || (code && code.length >= 4)) {
+        this.executeDirectJoin(code);
+        return;
       }
+
       this.closeGameSetup();
       this.openRoomLobby(type);
       return;
@@ -737,13 +770,10 @@ class App {
 
         window.multiplayerManager.joinRoom(roomCode, gameType, guestName, hostName);
         this.updateActiveRoomHeader(gameType, roomCode);
-        this.showToast(`Connected to room ${roomCode} as ${guestName}!`, 'success');
+        this.showToast(`🎉 Connected to room ${roomCode} as ${guestName}!`, 'success');
 
         document.getElementById('modal-join-game-with-name')?.classList.remove('open');
-
-        setTimeout(() => {
-          this.startGameWithMode(gameType, 'online', hostName, guestName);
-        }, 500);
+        this.startGameWithMode(gameType, 'online', hostName, guestName);
       });
     }
 

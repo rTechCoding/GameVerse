@@ -1,7 +1,8 @@
 /**
  * PlaySphere Real-Time Multiplayer System with Custom Player Names
  * Supports Shareable Game Links & 6-Character Game Codes.
- * Real-time synchronization via WebRTC (PeerJS) with BroadcastChannel & LocalStorage fallback.
+ * Real-time cross-device synchronization via WebRTC (PeerJS with Google STUN)
+ * with BroadcastChannel & LocalStorage fallback.
  */
 
 class MultiplayerManager {
@@ -19,6 +20,9 @@ class MultiplayerManager {
     this.onActionReceived = null;
     this.onPlayerJoined = null;
     this.onStatusChange = null;
+    this.heartbeatInterval = null;
+    this.retryCount = 0;
+    this.maxRetries = 10;
 
     this.initBroadcastChannel();
     this.checkUrlForRoom();
@@ -31,6 +35,10 @@ class MultiplayerManager {
       code += chars.charAt(Math.floor(Math.random() * chars.length));
     }
     return code;
+  }
+
+  getCleanCode(code) {
+    return (code || '').toUpperCase().replace(/[^A-Z0-9]/g, '').trim();
   }
 
   getShareableLink(roomCode, gameType, hostName) {
@@ -50,10 +58,10 @@ class MultiplayerManager {
         this.handleIncomingMessage(event.data);
       };
     } catch (e) {
-      console.warn('BroadcastChannel not supported, falling back to localStorage events', e);
+      console.warn('BroadcastChannel not supported, using storage fallback', e);
     }
 
-    // Fallback cross-tab localStorage event listener
+    // Fallback cross-tab localStorage event listener (for same-browser testing)
     window.addEventListener('storage', (e) => {
       if (e.key === 'playsphere_remote_action' && e.newValue) {
         try {
@@ -72,35 +80,39 @@ class MultiplayerManager {
     if (room && game) {
       setTimeout(() => {
         if (window.app) {
-          window.app.openJoinGameWithNameModal(room.toUpperCase(), game, host);
+          window.app.openJoinGameWithNameModal(this.getCleanCode(room), game, host);
         }
       }, 500);
     }
   }
 
   createRoom(gameType, hostName) {
+    this.leaveRoom();
+
     this.isHost = true;
     this.localPlayerSlot = 1;
     this.gameType = gameType;
     this.roomCode = this.generateRoomCode();
-    this.hostName = hostName || window.gameStorage.getProfile().name || 'Host';
+    this.hostName = hostName || window.gameStorage?.getProfile()?.name || 'Host';
     this.guestName = 'Player 2';
     this.connected = false;
 
-    this.initPeerConnection(`playsphere-${this.roomCode}-host`);
+    const hostPeerId = `playsphere-${this.roomCode}-host`;
+    this.initPeerConnection(hostPeerId, (assignedId) => {
+      console.log(`[Multiplayer] Host room created with Peer ID: ${assignedId}`);
+      if (this.onStatusChange) {
+        this.onStatusChange({
+          status: 'waiting',
+          roomCode: this.roomCode,
+          gameType: this.gameType,
+          hostName: this.hostName,
+          isHost: true,
+          shareLink: this.getShareableLink(this.roomCode, this.gameType, this.hostName)
+        });
+      }
+    });
 
     const shareLink = this.getShareableLink(this.roomCode, this.gameType, this.hostName);
-
-    if (this.onStatusChange) {
-      this.onStatusChange({
-        status: 'waiting',
-        roomCode: this.roomCode,
-        gameType: this.gameType,
-        hostName: this.hostName,
-        isHost: true,
-        shareLink
-      });
-    }
 
     return {
       roomCode: this.roomCode,
@@ -110,18 +122,28 @@ class MultiplayerManager {
   }
 
   joinRoom(roomCode, gameType, guestName, hostName = 'Host') {
+    this.leaveRoom();
+
     this.isHost = false;
     this.localPlayerSlot = 2;
     this.gameType = gameType;
-    this.roomCode = roomCode.toUpperCase().trim();
-    this.guestName = guestName || window.gameStorage.getProfile().name || 'Guest';
+    this.roomCode = this.getCleanCode(roomCode);
+    this.guestName = guestName || window.gameStorage?.getProfile()?.name || 'Guest';
     this.hostName = hostName;
     this.connected = false;
+    this.retryCount = 0;
 
-    this.initPeerConnection(`playsphere-${this.roomCode}-guest-${Date.now().toString(36)}`);
-    this.connectToHost();
+    const guestPeerId = `playsphere-${this.roomCode}-guest-${Date.now().toString(36)}`;
 
-    // Broadcast join event
+    // Wait for the guest's peer to register with the signaling server before attempting to connect to host!
+    this.initPeerConnection(guestPeerId, (assignedId) => {
+      if (assignedId) {
+        console.log(`[Multiplayer] Guest peer ready (${assignedId}), connecting to host...`);
+        this.connectToHost();
+      }
+    });
+
+    // Also broadcast to local channel (for same-device multi-tab testing)
     this.broadcast({
       type: 'PLAYER_JOINED',
       roomCode: this.roomCode,
@@ -141,37 +163,73 @@ class MultiplayerManager {
     }
   }
 
-  initPeerConnection(peerId) {
+  initPeerConnection(peerId, onOpenCallback) {
     if (typeof Peer === 'undefined') {
-      console.log('PeerJS CDN not loaded, using local cross-tab BroadcastChannel sync');
+      console.warn('[Multiplayer] PeerJS library not loaded, using local cross-tab fallback');
+      if (onOpenCallback) onOpenCallback(null);
       return;
     }
 
     try {
-      if (this.peer) this.peer.destroy();
-      this.peer = new Peer(peerId, { debug: 1 });
+      if (this.peer && !this.peer.destroyed) {
+        try { this.peer.destroy(); } catch (e) {}
+      }
+
+      this.peer = new Peer(peerId, {
+        debug: 1,
+        config: {
+          iceServers: [
+            { urls: 'stun:stun.l.google.com:19302' },
+            { urls: 'stun:stun1.l.google.com:19302' },
+            { urls: 'stun:stun2.l.google.com:19302' },
+            { urls: 'stun:stun3.l.google.com:19302' },
+            { urls: 'stun:stun4.l.google.com:19302' },
+            { urls: 'stun:global.stun.twilio.com:3478' }
+          ]
+        }
+      });
+
+      this.peer.on('open', (id) => {
+        console.log(`[Multiplayer] Peer connected to signaling server with ID: ${id}`);
+        if (onOpenCallback) onOpenCallback(id);
+      });
 
       this.peer.on('connection', (conn) => {
+        console.log(`[Multiplayer] Host received connection from peer: ${conn.peer}`);
         this.conn = conn;
         this.setupConnectionHandlers();
-        this.connected = true;
-        if (this.isHost && this.onPlayerJoined) {
-          this.onPlayerJoined(this.guestName);
+      });
+
+      this.peer.on('error', (err) => {
+        console.warn('[Multiplayer] Peer error:', err.type, err.message);
+        if (err.type === 'peer-unavailable') {
+          // Host not ready or temporary signaling lag: auto retry connecting
+          if (!this.isHost && this.retryCount < this.maxRetries) {
+            this.retryCount++;
+            console.log(`[Multiplayer] Host not yet available. Retrying connection (${this.retryCount}/${this.maxRetries})...`);
+            setTimeout(() => this.connectToHost(), 1500);
+          }
         }
       });
     } catch (e) {
-      console.warn('PeerJS init failed:', e);
+      console.warn('[Multiplayer] PeerJS initialization error:', e);
+      if (onOpenCallback) onOpenCallback(null);
     }
   }
 
   connectToHost() {
-    if (!this.peer) return;
+    if (!this.peer || this.peer.destroyed) return;
     try {
       const hostId = `playsphere-${this.roomCode}-host`;
+      console.log(`[Multiplayer] Connecting to host peer ${hostId}...`);
       this.conn = this.peer.connect(hostId, { reliable: true });
       this.setupConnectionHandlers();
     } catch (e) {
-      console.warn('Could not connect to host peer:', e);
+      console.warn('[Multiplayer] connectToHost failed:', e);
+      if (this.retryCount < this.maxRetries) {
+        this.retryCount++;
+        setTimeout(() => this.connectToHost(), 1500);
+      }
     }
   }
 
@@ -179,12 +237,25 @@ class MultiplayerManager {
     if (!this.conn) return;
 
     this.conn.on('open', () => {
+      console.log('[Multiplayer] WebRTC DataChannel successfully OPENED between devices!');
       this.connected = true;
+      this.startHeartbeat();
+
       if (this.onStatusChange) {
         this.onStatusChange({ status: 'connected', roomCode: this.roomCode });
       }
-      if (this.onPlayerJoined) {
-        this.onPlayerJoined(this.isHost ? this.guestName : this.hostName);
+
+      if (!this.isHost) {
+        // Send handshake from guest to host
+        this.sendAction('PLAYER_JOINED', {
+          roomCode: this.roomCode,
+          guestName: this.guestName,
+          hostName: this.hostName
+        });
+      } else {
+        if (this.onPlayerJoined) {
+          this.onPlayerJoined(this.guestName);
+        }
       }
     });
 
@@ -193,11 +264,35 @@ class MultiplayerManager {
     });
 
     this.conn.on('close', () => {
+      console.log('[Multiplayer] WebRTC connection closed');
       this.connected = false;
+      this.stopHeartbeat();
       if (this.onStatusChange) {
         this.onStatusChange({ status: 'disconnected', roomCode: this.roomCode });
       }
     });
+
+    this.conn.on('error', (err) => {
+      console.warn('[Multiplayer] Connection error:', err);
+    });
+  }
+
+  startHeartbeat() {
+    this.stopHeartbeat();
+    this.heartbeatInterval = setInterval(() => {
+      if (this.conn && this.conn.open) {
+        try {
+          this.conn.send({ action: 'PING', roomCode: this.roomCode, timestamp: Date.now() });
+        } catch (e) {}
+      }
+    }, 8000);
+  }
+
+  stopHeartbeat() {
+    if (this.heartbeatInterval) {
+      clearInterval(this.heartbeatInterval);
+      this.heartbeatInterval = null;
+    }
   }
 
   sendAction(action, payload = {}) {
@@ -210,7 +305,11 @@ class MultiplayerManager {
     };
 
     if (this.conn && this.conn.open) {
-      this.conn.send(message);
+      try {
+        this.conn.send(message);
+      } catch (e) {
+        console.warn('[Multiplayer] Failed to send over WebRTC:', e);
+      }
     }
 
     this.broadcast(message);
@@ -232,9 +331,12 @@ class MultiplayerManager {
     if (data.roomCode !== this.roomCode) return;
     if (data.senderSlot === this.localPlayerSlot) return;
 
-    if (data.type === 'PLAYER_JOINED') {
+    if (data.action === 'PING') return;
+
+    if (data.type === 'PLAYER_JOINED' || data.action === 'PLAYER_JOINED') {
+      const payload = data.payload || data;
       this.connected = true;
-      if (data.guestName) this.guestName = data.guestName;
+      if (payload.guestName) this.guestName = payload.guestName;
       if (this.isHost) {
         this.sendAction('HOST_ACK', {
           gameType: this.gameType,
@@ -248,8 +350,8 @@ class MultiplayerManager {
 
     if (data.action === 'HOST_ACK') {
       this.connected = true;
-      if (data.payload.hostName) this.hostName = data.payload.hostName;
-      if (data.payload.guestName) this.guestName = data.payload.guestName;
+      if (data.payload?.hostName) this.hostName = data.payload.hostName;
+      if (data.payload?.guestName) this.guestName = data.payload.guestName;
       if (this.onPlayerJoined) this.onPlayerJoined(this.hostName);
       return;
     }
@@ -260,14 +362,15 @@ class MultiplayerManager {
   }
 
   leaveRoom() {
+    this.stopHeartbeat();
     this.roomCode = null;
     this.connected = false;
     if (this.conn) {
-      this.conn.close();
+      try { this.conn.close(); } catch (e) {}
       this.conn = null;
     }
     if (this.peer) {
-      this.peer.destroy();
+      try { this.peer.destroy(); } catch (e) {}
       this.peer = null;
     }
   }
