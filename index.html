@@ -250,9 +250,13 @@
 
         <!-- ==================== SCREEN: LUDO ==================== -->
         <section id="screen-ludo" class="app-screen">
-          <!-- Game Subheader -->
+          <!-- Game Subheader with Back to Home -->
           <div class="game-top-bar">
-            <button class="btn-icon-back" data-navigate="home" title="Back to Home">‹</button>
+            <!-- [PlaySphere Enhancement]: Clear Back to Home button -->
+            <button id="btn-back-ludo" class="btn-icon-back btn-back-home" data-navigate="home" title="Back to Home" aria-label="Back to Home">
+              <span class="back-arrow">‹</span>
+              <span class="back-text">Home</span>
+            </button>
             <div class="game-bar-center">
               <span class="game-sub-badge">Ludo Championship</span>
               <div id="ludo-online-indicator" class="online-room-badge" style="display: none;">
@@ -335,7 +339,11 @@
         <!-- ==================== SCREEN: TIC-TAC-TOE ==================== -->
         <section id="screen-tictactoe" class="app-screen">
           <div class="game-top-bar">
-            <button class="btn-icon-back" data-navigate="home" title="Back to Home">‹</button>
+            <!-- [PlaySphere Enhancement]: Clear Back to Home button -->
+            <button id="btn-back-ttt" class="btn-icon-back btn-back-home" data-navigate="home" title="Back to Home" aria-label="Back to Home">
+              <span class="back-arrow">‹</span>
+              <span class="back-text">Home</span>
+            </button>
             <div class="game-bar-center">
               <span class="game-sub-badge">Tic-Tac-Toe Arena</span>
               <div id="ttt-turn-indicator" class="turn-status-row">
@@ -387,7 +395,11 @@
         <!-- ==================== SCREEN: CHESS ==================== -->
         <section id="screen-chess" class="app-screen">
           <div class="game-top-bar">
-            <button class="btn-icon-back" data-navigate="home" title="Back to Home">‹</button>
+            <!-- [PlaySphere Enhancement]: Clear Back to Home button -->
+            <button id="btn-back-chess" class="btn-icon-back btn-back-home" data-navigate="home" title="Back to Home" aria-label="Back to Home">
+              <span class="back-arrow">‹</span>
+              <span class="back-text">Home</span>
+            </button>
             <div class="game-bar-center">
               <span class="game-sub-badge">Tournament Chess</span>
               <div id="chess-turn-indicator" class="turn-status-row">
