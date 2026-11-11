@@ -1,0 +1,1265 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Rahat Ansari • Ultimate Gaming Arena</title>
+  <link rel="icon" type="image/jpeg" href="assets/rahat_logo_light.jpg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/style.css">
+  <!-- Optional PeerJS for WebRTC P2P Multiplayer (falls back to local cross-tab sync if offline) -->
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js" onerror="this.onerror=null;this.src='https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js';"></script>
+</head>
+<body class="mobile-bezel-mode">
+
+  <!-- Desktop App Frame Toggle Bar -->
+  <aside class="device-toolbar">
+    <div class="toolbar-left">
+      <span class="live-dot"></span>
+      <strong>PlaySphere App</strong>
+      <span class="platform-pill">Multiplayer Pro</span>
+    </div>
+    <div class="toolbar-actions">
+      <button id="btn-toggle-frame" class="tool-btn" title="Toggle between mobile bezel frame & desktop full-width">📱 Mobile View</button>
+      <button class="tool-btn theme-toggle-btn" title="Toggle Light/Dark Theme">
+        <span id="theme-icon">☀️</span> Theme
+      </button>
+    </div>
+  </aside>
+
+  <!-- App Shell Container (Simulates sleek mobile device when in bezel mode) -->
+  <div class="app-viewport-wrapper">
+    <div class="app-mobile-container">
+      
+      <!-- Top Mobile App Header -->
+      <header class="app-header">
+        <div class="header-brand" data-navigate="home" title="Rahat Ansari Gaming Arena">
+          <div class="brand-logo-container">
+            <img src="assets/rahat_logo_dark.jpg" alt="Rahat Ansari" class="brand-logo-img logo-img-dark">
+            <img src="assets/rahat_logo_light.jpg" alt="Rahat Ansari" class="brand-logo-img logo-img-light">
+          </div>
+        </div>
+
+        <div class="header-user-status">
+          <div class="coin-pill" title="Player Coins">
+            <span class="coin-icon">🪙</span>
+            <span id="home-user-coins">850</span>
+          </div>
+          <button class="header-avatar-btn" data-navigate="profile" title="View Profile">
+            <span id="home-user-avatar" class="avatar-emoji">🥷</span>
+            <span class="avatar-online-dot"></span>
+          </button>
+        </div>
+      </header>
+
+      <!-- Scrollable Main Screen Content -->
+      <main class="app-main-content">
+
+        <!-- ==================== SCREEN: HOME ==================== -->
+        <section id="screen-home" class="app-screen active">
+          <!-- User Welcome Hero Banner -->
+          <div class="welcome-hero-banner">
+            <div class="hero-left">
+              <span class="welcome-badge">⚡ LEVEL <span id="home-user-level">4</span> GAMER • <span id="home-user-xp">1450 XP</span></span>
+              <h2 class="welcome-title">Welcome back, <br><span id="home-user-name" class="gradient-text">Rahat Gamer</span>!</h2>
+              <p class="welcome-subtitle">Ready to conquer your next match?</p>
+            </div>
+            <div class="hero-stats-quick">
+              <div class="stat-bubble">
+                <span class="stat-bubble-label">Win Rate</span>
+                <strong id="home-stat-winrate" class="stat-bubble-val text-success">74%</strong>
+              </div>
+              <div class="stat-bubble">
+                <span class="stat-bubble-label">Total Wins</span>
+                <strong id="home-stat-wins" class="stat-bubble-val text-accent">33</strong>
+              </div>
+              <div class="stat-bubble">
+                <span class="stat-bubble-label">Streak</span>
+                <strong id="home-stat-streak" class="stat-bubble-val text-warning">2 🔥</strong>
+              </div>
+            </div>
+          </div>
+
+          <!-- Section: Featured Games -->
+          <div class="section-container">
+            <div class="section-header">
+              <h3 class="section-title">Featured Games</h3>
+              <button class="section-link" data-navigate="games">See All (3)</button>
+            </div>
+
+            <div class="games-card-stack">
+              <!-- Game Card: Ludo -->
+              <div class="game-card ludo-card" data-launch-game="ludo">
+                <div class="game-card-bg-glow glow-ludo"></div>
+                <div class="card-badge ludo-badge">AUTHENTIC BOARD • SHARE LINK & ROOMS</div>
+                <div class="game-card-body">
+                  <div class="card-icon-wrap icon-ludo">🎲</div>
+                  <div class="card-details">
+                    <h3 class="game-card-title">Ludo Championship</h3>
+                    <p class="game-card-desc">Real authentic Ludo board with 3D pawns, white yard sockets, center home triangles, and room codes to share with friends.</p>
+                    <div class="game-tags">
+                      <span class="tag">Real Board</span>
+                      <span class="tag">Share Link</span>
+                      <span class="tag">Team Mode</span>
+                      <span class="tag">Smart AI</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="card-action-bar">
+                  <span class="action-players-icon">👥 1-4 Players • Online & Local</span>
+                  <button class="btn-play-card btn-ludo">Play Now <span class="arrow-icon">➔</span></button>
+                </div>
+              </div>
+
+              <!-- Game Card: Tic-Tac-Toe -->
+              <div class="game-card ttt-card" data-launch-game="tictactoe">
+                <div class="game-card-bg-glow glow-ttt"></div>
+                <div class="card-badge ttt-badge">NEON CYBER ARENA • SHARE LINK</div>
+                <div class="game-card-body">
+                  <div class="card-icon-wrap icon-ttt"><span class="ttt-duo-symbol">❌⭕</span></div>
+                  <div class="card-details">
+                    <h3 class="game-card-title">Tic-Tac-Toe Arena</h3>
+                    <p class="game-card-desc">Glowing neon battleground with animated stroke lines, scorekeeper, online room codes, and unbeatable Hard Minimax AI.</p>
+                    <div class="game-tags">
+                      <span class="tag">Online Duels</span>
+                      <span class="tag">Minimax AI</span>
+                      <span class="tag">Laser FX</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="card-action-bar">
+                  <span class="action-players-icon">⚡ Instant Play • Code & Link</span>
+                  <button class="btn-play-card btn-ttt">Play Now <span class="arrow-icon">➔</span></button>
+                </div>
+              </div>
+
+              <!-- Game Card: Chess -->
+              <div class="game-card chess-card" data-launch-game="chess">
+                <div class="game-card-bg-glow glow-chess"></div>
+                <div class="card-badge chess-badge">TOURNAMENT WOODEN BOARD</div>
+                <div class="game-card-body">
+                  <div class="card-icon-wrap icon-chess">♟️</div>
+                  <div class="card-details">
+                    <h3 class="game-card-title">Grandmaster Chess</h3>
+                    <p class="game-card-desc">Tournament wood chessboard with coordinates, legal move rays, castling, en passant, timers & online room links.</p>
+                    <div class="game-tags">
+                      <span class="tag">Online Room</span>
+                      <span class="tag">Alpha-Beta AI</span>
+                      <span class="tag">Tournament Timers</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="card-action-bar">
+                  <span class="action-players-icon">⏱️ Blitz & Rapid • Share Code</span>
+                  <button class="btn-play-card btn-chess">Play Now <span class="arrow-icon">➔</span></button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Section: Recent Matches -->
+          <div class="section-container">
+            <div class="section-header">
+              <h3 class="section-title">Recent Matches</h3>
+              <button class="section-link" data-navigate="stats">Full History</button>
+            </div>
+            <div id="home-recent-list" class="recent-matches-list">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+
+          <!-- Section: Quick Leaderboard Snippet -->
+          <div class="section-container">
+            <div class="quick-banner-card" data-navigate="leaderboard">
+              <div class="qb-icon">🏆</div>
+              <div class="qb-content">
+                <h4>Global Leaderboard</h4>
+                <p>You are ranked <strong>#2</strong> this week! Climb to #1 now.</p>
+              </div>
+              <span class="qb-arrow">➔</span>
+            </div>
+          </div>
+
+          <!-- rTechCoding Footer -->
+          <footer class="app-screen-footer rtech-footer">
+            <div class="footer-brand-logo">
+              <img src="assets/rahat_logo_dark.jpg" alt="Rahat Ansari" class="footer-logo-img logo-img-dark">
+              <img src="assets/rahat_logo_light.jpg" alt="Rahat Ansari" class="footer-logo-img logo-img-light">
+            </div>
+            <div class="rtech-badge-pill">
+              <span class="rtech-sparkle">✨</span>
+              <span class="rtech-code-prefix">&lt;/&gt;</span>
+              <strong>rTechCoding</strong>
+            </div>
+            <p class="rtech-author">Designed &amp; Developed with ❤️ by <strong>Rahat Ansari</strong></p>
+            <p class="rtech-tagline">&lt;/ Think. Code. Build. /&gt;</p>
+            <p class="rtech-copy">© 2026 <strong>rTechCoding</strong> • All Rights Reserved</p>
+            <div class="rtech-links">
+              <a href="https://github.com/rTechCoding" target="_blank" rel="noopener" class="rtech-link">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" style="vertical-align: -2px;"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+                <span>github.com/rTechCoding</span>
+              </a>
+            </div>
+          </footer>
+        </section>
+
+        <!-- ==================== SCREEN: GAMES ==================== -->
+        <section id="screen-games" class="app-screen">
+          <div class="screen-title-banner">
+            <h2>Arcade Games Hub</h2>
+            <p>Pick a challenge, create a room to play with friends, or battle AI bots!</p>
+          </div>
+
+          <div class="games-grid-view">
+            <!-- Ludo Box -->
+            <div class="arcade-game-box ludo-theme" data-launch-game="ludo">
+              <div class="box-preview-art">🎲</div>
+              <div class="box-content">
+                <div class="box-pill">Board Game • Share Code</div>
+                <h3>Ludo Championship</h3>
+                <p>2 to 4 players or 2v2 Teams. Authentic board with 3D pawns, white yard sockets & shareable room links!</p>
+                <button class="btn-arcade-play">Configure & Play</button>
+              </div>
+            </div>
+
+            <!-- Tic-Tac-Toe Box -->
+            <div class="arcade-game-box ttt-theme" data-launch-game="tictactoe">
+              <div class="box-preview-art ttt-art"><span class="ttt-duo-symbol">❌⭕</span></div>
+              <div class="box-content">
+                <div class="box-pill">Quick Duel • Online Room</div>
+                <h3>Tic-Tac-Toe Arena</h3>
+                <p>Challenge a friend via shareable game link or test yourself against our invincible Minimax AI!</p>
+                <button class="btn-arcade-play">Quick Match</button>
+              </div>
+            </div>
+
+            <!-- Chess Box -->
+            <div class="arcade-game-box chess-theme" data-launch-game="chess">
+              <div class="box-preview-art">♟️</div>
+              <div class="box-content">
+                <div class="box-pill">Strategy • Tournament</div>
+                <h3>Grandmaster Chess</h3>
+                <p>Real wooden tournament board with coordinates, clock timers, checkmate recognition & room sync!</p>
+                <button class="btn-arcade-play">Duel Now</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================== SCREEN: LUDO ==================== -->
+        <section id="screen-ludo" class="app-screen">
+          <!-- Game Subheader with Back to Home -->
+          <div class="game-top-bar">
+            <!-- [PlaySphere Enhancement]: Clear Back to Home button -->
+            <button id="btn-back-ludo" class="btn-icon-back btn-back-home" data-navigate="home" title="Back to Home" aria-label="Back to Home">
+              <span class="back-arrow">‹</span>
+              <span class="back-text">Home</span>
+            </button>
+            <div class="game-bar-center">
+              <span class="game-sub-badge">Ludo Championship</span>
+              <div id="ludo-online-indicator" class="online-room-badge" style="display: none;">
+                <span class="live-dot"></span> Room: <strong id="ludo-active-room-code">----</strong>
+                <button id="btn-copy-ludo-room" class="btn-copy-mini" title="Copy Share Link">🔗</button>
+              </div>
+            </div>
+            <div class="top-bar-action-group">
+              <button id="btn-ludo-sound" class="btn-icon-action" title="Toggle Sound Effects">🔊</button>
+              <button id="btn-ludo-restart" class="btn-icon-action" title="Restart Game">🔄</button>
+            </div>
+          </div>
+
+          <!-- 4 Player Pods Around Board -->
+          <div id="ludo-players-pods" class="ludo-players-pods-grid">
+            <!-- Rendered dynamically by JS with avatars, turn rings, and home counts -->
+          </div>
+
+          <!-- Authentic Real Ludo Board Container -->
+          <div class="ludo-board-wrapper">
+            <div id="ludo-board-container" class="ludo-real-svg-board">
+              <!-- Rendered via SVG with 3D pawns, white yards, and center triangles -->
+            </div>
+          </div>
+
+          <!-- Professional Gaming HUD & 3D Dice Stadium Console -->
+          <div class="ludo-pro-console" id="ludo-pro-console">
+            <!-- 3D Stadium Dice Card -->
+            <div class="dice-stadium-card" id="dice-stadium-card">
+              <!-- Left: 3D Royal Rolling Tray -->
+              <div class="dice-rolling-tray" id="ludo-dice-tray" title="Tap to Roll">
+                <div class="tray-surface-glow"></div>
+                <div id="ludo-dice-container" class="dice-scene">
+                  <div id="ludo-dice-cube" class="dice-cube" data-face="6">
+                    <div class="dice-face face-1"><span class="dot"></span></div>
+                    <div class="dice-face face-2"><span class="dot"></span><span class="dot"></span></div>
+                    <div class="dice-face face-3"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+                    <div class="dice-face face-4">
+                      <div class="col"><span class="dot"></span><span class="dot"></span></div>
+                      <div class="col"><span class="dot"></span><span class="dot"></span></div>
+                    </div>
+                    <div class="dice-face face-5">
+                      <div class="col"><span class="dot"></span><span class="dot"></span></div>
+                      <div class="col center"><span class="dot"></span></div>
+                      <div class="col"><span class="dot"></span><span class="dot"></span></div>
+                    </div>
+                    <div class="dice-face face-6">
+                      <div class="col"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+                      <div class="col"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+                    </div>
+                  </div>
+                </div>
+                <div class="tray-shadow-ring"></div>
+              </div>
+
+              <!-- Right: Unique Pro Gaming Action HUD -->
+              <div class="console-action-hud">
+                <div class="hud-status-row">
+                  <div class="hud-turn-badge" id="ludo-hud-turn-badge">
+                    <span class="hud-player-dot" id="ludo-hud-dot"></span>
+                    <span class="hud-player-name" id="ludo-hud-name">Player 1</span>
+                    <span class="hud-team-tag" id="ludo-hud-team" style="display: none;">Team 1</span>
+                  </div>
+                  <div class="hud-tactical-pill" id="ludo-hud-tactical-pill">
+                    <span class="pill-pulse-dot"></span>
+                    <span id="ludo-hud-tactical-text">Roll 6 to release goti!</span>
+                  </div>
+                </div>
+
+                <!-- Pro 3D Push Button -->
+                <button id="ludo-roll-btn" class="btn-pro-roll">
+                  <span class="btn-roll-glow"></span>
+                  <span class="btn-roll-content" id="ludo-roll-btn-text">Roll Dice 🎲</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================== SCREEN: TIC-TAC-TOE ==================== -->
+        <section id="screen-tictactoe" class="app-screen">
+          <div class="game-top-bar">
+            <!-- [PlaySphere Enhancement]: Clear Back to Home button -->
+            <button id="btn-back-ttt" class="btn-icon-back btn-back-home" data-navigate="home" title="Back to Home" aria-label="Back to Home">
+              <span class="back-arrow">‹</span>
+              <span class="back-text">Home</span>
+            </button>
+            <div class="game-bar-center">
+              <span class="game-sub-badge">Tic-Tac-Toe Arena</span>
+              <div id="ttt-turn-indicator" class="turn-status-row">
+                Turn: <strong class="symbol-x">Player X</strong>
+              </div>
+              <div id="ttt-online-indicator" class="online-room-badge" style="display: none;">
+                <span class="live-dot"></span> Room: <strong id="ttt-active-room-code">----</strong>
+                <button id="btn-copy-ttt-room" class="btn-copy-mini" title="Copy Share Link">🔗</button>
+              </div>
+            </div>
+            <div class="top-bar-action-group">
+              <button id="btn-ttt-sound" class="btn-icon-action" title="Toggle Sound Effects">🔊</button>
+              <button id="btn-ttt-restart" class="btn-icon-action" title="Restart Round">🔄</button>
+            </div>
+          </div>
+
+          <!-- Tic-Tac-Toe Scoreboard -->
+          <div class="ttt-scoreboard">
+            <div class="score-card player-x-card">
+              <span class="score-symbol">❌</span>
+              <span id="ttt-name-x" class="score-label">Player X</span>
+              <strong id="ttt-score-x" class="score-number">0</strong>
+            </div>
+            <div class="score-card ties-card">
+              <span class="score-symbol">🤝</span>
+              <span class="score-label">Draws</span>
+              <strong id="ttt-score-draw" class="score-number">0</strong>
+            </div>
+            <div class="score-card player-o-card">
+              <span class="score-symbol">⭕</span>
+              <span id="ttt-name-o" class="score-label">Player O</span>
+              <strong id="ttt-score-o" class="score-number">0</strong>
+            </div>
+          </div>
+
+          <!-- 3x3 Cyber Board -->
+          <div class="ttt-board-container">
+            <div id="ttt-board" class="ttt-board-grid">
+              <!-- Rendered via JS -->
+            </div>
+          </div>
+
+          <!-- Quick Action Buttons -->
+          <div class="ttt-action-footer">
+            <button id="btn-ttt-new" class="btn-secondary">New Match (Reset Scores)</button>
+          </div>
+        </section>
+
+        <!-- ==================== SCREEN: CHESS ==================== -->
+        <section id="screen-chess" class="app-screen">
+          <div class="game-top-bar">
+            <!-- [PlaySphere Enhancement]: Clear Back to Home button -->
+            <button id="btn-back-chess" class="btn-icon-back btn-back-home" data-navigate="home" title="Back to Home" aria-label="Back to Home">
+              <span class="back-arrow">‹</span>
+              <span class="back-text">Home</span>
+            </button>
+            <div class="game-bar-center">
+              <span class="game-sub-badge">Tournament Chess</span>
+              <div id="chess-turn-indicator" class="turn-status-row">
+                Turn: <strong class="chess-turn-white">White</strong>
+              </div>
+              <div id="chess-online-indicator" class="online-room-badge" style="display: none;">
+                <span class="live-dot"></span> Room: <strong id="chess-active-room-code">----</strong>
+                <button id="btn-copy-chess-room" class="btn-copy-mini" title="Copy Share Link">🔗</button>
+              </div>
+            </div>
+            <div class="top-bar-action-group">
+              <button id="btn-chess-sound" class="btn-icon-action" title="Toggle Sound Effects">🔊</button>
+              <button id="btn-chess-restart" class="btn-icon-action" title="Restart Game">🔄</button>
+            </div>
+          </div>
+
+          <!-- Chess Clocks & Captured Pieces -->
+          <div class="chess-meta-panel">
+            <div class="player-meta-box meta-black">
+              <div class="meta-row">
+                <span class="meta-avatar">♟️</span>
+                <span id="chess-name-b" class="meta-name">Black</span>
+                <span id="chess-clock-b" class="chess-timer-badge">10:00</span>
+              </div>
+              <div id="chess-captured-w" class="captured-tray"></div>
+            </div>
+
+            <!-- Tournament Chessboard Container -->
+            <div class="chess-board-wrapper">
+              <div id="chess-board" class="chess-board-grid">
+                <!-- Rendered dynamically with wood grain & coordinates -->
+              </div>
+            </div>
+
+            <div class="player-meta-box meta-white">
+              <div class="meta-row">
+                <span class="meta-avatar">♙</span>
+                <span id="chess-name-w" class="meta-name">White</span>
+                <span id="chess-clock-w" class="chess-timer-badge">10:00</span>
+              </div>
+              <div id="chess-captured-b" class="captured-tray"></div>
+            </div>
+          </div>
+
+          <!-- Chess Controls & Move Notation Bar -->
+          <div class="chess-controls-strip">
+            <button id="btn-chess-undo" class="btn-chess-action" title="Undo Last Move">↩ Undo</button>
+            <button id="btn-chess-resign" class="btn-chess-action btn-danger" title="Resign Match">🏳 Resign</button>
+          </div>
+
+          <!-- Move History Scroll -->
+          <div class="chess-history-container">
+            <span class="history-label">Move History:</span>
+            <div id="chess-history-list" class="history-scroll-list"></div>
+          </div>
+        </section>
+
+        <!-- ==================== SCREEN: STATS ==================== -->
+        <section id="screen-stats" class="app-screen">
+          <div class="screen-title-banner">
+            <h2>Player Statistics</h2>
+            <p>Comprehensive gameplay records and win analysis.</p>
+          </div>
+
+          <div class="stats-overview-card">
+            <h4>Games Distribution</h4>
+            <div class="multi-progress-bar">
+              <div id="chart-ludo-bar" class="bar-segment seg-ludo" style="width: 33%"></div>
+              <div id="chart-ttt-bar" class="bar-segment seg-ttt" style="width: 33%"></div>
+              <div id="chart-chess-bar" class="bar-segment seg-chess" style="width: 34%"></div>
+            </div>
+            <div class="progress-legend">
+              <span class="leg-item"><span class="dot ludo"></span> Ludo</span>
+              <span class="leg-item"><span class="dot ttt"></span> Tic-Tac-Toe</span>
+              <span class="leg-item"><span class="dot chess"></span> Chess</span>
+            </div>
+          </div>
+
+          <div class="stats-game-breakdown">
+            <div class="stat-card">
+              <div class="stat-card-header">
+                <div class="sc-icon ludo">🎲</div>
+                <div class="sc-title">
+                  <h3>Ludo</h3>
+                  <span id="stat-ludo-rate" class="sc-rate text-success">71% Win Rate</span>
+                </div>
+              </div>
+              <div class="stat-metrics-grid">
+                <div class="metric"><span class="m-val" id="stat-ludo-played">14</span><span class="m-lbl">Played</span></div>
+                <div class="metric"><span class="m-val text-success" id="stat-ludo-won">10</span><span class="m-lbl">Wins</span></div>
+                <div class="metric"><span class="m-val text-danger" id="stat-ludo-lost">4</span><span class="m-lbl">Losses</span></div>
+              </div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-card-header">
+                <div class="sc-icon ttt"><span class="ttt-duo-symbol">❌⭕</span></div>
+                <div class="sc-title">
+                  <h3>Tic-Tac-Toe</h3>
+                  <span id="stat-ttt-rate" class="sc-rate text-accent">77% Win Rate</span>
+                </div>
+              </div>
+              <div class="stat-metrics-grid four-col">
+                <div class="metric"><span class="m-val" id="stat-ttt-played">22</span><span class="m-lbl">Played</span></div>
+                <div class="metric"><span class="m-val text-success" id="stat-ttt-won">17</span><span class="m-lbl">Wins</span></div>
+                <div class="metric"><span class="m-val text-danger" id="stat-ttt-lost">3</span><span class="m-lbl">Losses</span></div>
+                <div class="metric"><span class="m-val text-warning" id="stat-ttt-draw">2</span><span class="m-lbl">Draws</span></div>
+              </div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-card-header">
+                <div class="sc-icon chess">♟️</div>
+                <div class="sc-title">
+                  <h3>Chess</h3>
+                  <span id="stat-chess-rate" class="sc-rate text-warning">67% Win Rate</span>
+                </div>
+              </div>
+              <div class="stat-metrics-grid four-col">
+                <div class="metric"><span class="m-val" id="stat-chess-played">9</span><span class="m-lbl">Played</span></div>
+                <div class="metric"><span class="m-val text-success" id="stat-chess-won">6</span><span class="m-lbl">Wins</span></div>
+                <div class="metric"><span class="m-val text-danger" id="stat-chess-lost">3</span><span class="m-lbl">Losses</span></div>
+                <div class="metric"><span class="m-val text-warning" id="stat-chess-draw">0</span><span class="m-lbl">Draws</span></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================== SCREEN: LEADERBOARD ==================== -->
+        <section id="screen-leaderboard" class="app-screen">
+          <div class="screen-title-banner">
+            <h2>Hall of Fame</h2>
+            <p>Compete with grand champions and scale the leaderboard.</p>
+          </div>
+
+          <div class="leaderboard-tabs-bar">
+            <button class="lb-tab-btn active" data-tab="allTime">All-Time</button>
+            <button class="lb-tab-btn" data-tab="monthly">Monthly</button>
+            <button class="lb-tab-btn" data-tab="weekly">Weekly</button>
+          </div>
+
+          <div id="leaderboard-podium" class="podium-container"></div>
+          <div id="leaderboard-list" class="leaderboard-ranked-list"></div>
+        </section>
+
+        <!-- ==================== SCREEN: PROFILE ==================== -->
+        <section id="screen-profile" class="app-screen">
+          <div class="profile-hero-card">
+            <div class="profile-avatar-wrap">
+              <span id="profile-avatar" class="profile-big-avatar">🥷</span>
+            </div>
+            <h3 id="profile-name" class="profile-display-name">Rahat Gamer</h3>
+            <p id="profile-bio" class="profile-bio-text">Pro strategist & board game conqueror 🎮</p>
+            <span id="profile-level" class="profile-rank-pill">Level 4</span>
+
+            <div class="profile-xp-container">
+              <div class="xp-bar-outer">
+                <div id="profile-xp-bar" class="xp-bar-inner" style="width: 62%;"></div>
+              </div>
+              <span id="profile-xp-text" class="xp-numbers">1450 / 1600 XP</span>
+            </div>
+
+            <button id="btn-edit-profile" class="btn-edit-prof">✏️ Edit Profile</button>
+          </div>
+
+          <div class="profile-stats-grid">
+            <div class="p-stat-box"><span class="p-stat-val" id="profile-stat-played">45</span><span class="p-stat-lbl">Matches</span></div>
+            <div class="p-stat-box"><span class="p-stat-val text-success" id="profile-stat-wins">33</span><span class="p-stat-lbl">Victories</span></div>
+            <div class="p-stat-box"><span class="p-stat-val text-danger" id="profile-stat-losses">10</span><span class="p-stat-lbl">Losses</span></div>
+            <div class="p-stat-box"><span class="p-stat-val text-accent" id="profile-stat-rate">74%</span><span class="p-stat-lbl">Win Ratio</span></div>
+            <div class="p-stat-box full-width">
+              <span class="p-stat-lbl">Favorite Arena:</span>
+              <strong class="p-stat-val text-warning" id="profile-stat-fav">Ludo</strong>
+            </div>
+          </div>
+
+          <div class="section-container">
+            <div class="section-header">
+              <h3 class="section-title">Achievements</h3>
+            </div>
+            <div id="profile-achievements-list" class="achievements-grid"></div>
+          </div>
+        </section>
+
+        <!-- ==================== SCREEN: SETTINGS ==================== -->
+        <section id="screen-settings" class="app-screen">
+          <div class="screen-title-banner">
+            <h2>App Settings</h2>
+            <p>Customize your gaming experience and interface.</p>
+          </div>
+
+          <div class="settings-group-card">
+            <h4>Appearance & Layout</h4>
+            <div class="setting-item-row">
+              <div class="setting-desc">
+                <strong>Color Theme</strong>
+                <p>Choose between dark cyber neon or clean bright light mode.</p>
+              </div>
+              <select id="setting-theme-select" class="form-select">
+                <option value="light" selected>☀️ Light Theme</option>
+                <option value="dark">🌙 Dark Theme</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="settings-group-card">
+            <h4>Audio & Effects</h4>
+            <div class="setting-item-row">
+              <div class="setting-desc">
+                <strong>Sound Effects</strong>
+                <p>Dice tumbling, moves, captures, and victory chimes.</p>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="setting-sound" checked>
+                <span class="switch-slider"></span>
+              </label>
+            </div>
+            <div class="setting-item-row">
+              <div class="setting-desc">
+                <strong>Background Synth Music</strong>
+                <p>Relaxing polyphonic synth chords during matches.</p>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="setting-music">
+                <span class="switch-slider"></span>
+              </label>
+            </div>
+          </div>
+
+          <div class="settings-group-card">
+            <h4>Account & Data</h4>
+            <div class="setting-item-row">
+              <div class="setting-desc">
+                <strong>Reset All Records</strong>
+                <p>Clear all wins, losses, XP, and match history.</p>
+              </div>
+              <button id="btn-reset-stats" class="btn-danger-sm">Reset Stats</button>
+            </div>
+          </div>
+
+          <div class="app-info-footer rtech-footer">
+            <div class="footer-brand-logo">
+              <img src="assets/rahat_logo_dark.jpg" alt="Rahat Ansari" class="footer-logo-img logo-img-dark">
+              <img src="assets/rahat_logo_light.jpg" alt="Rahat Ansari" class="footer-logo-img logo-img-light">
+            </div>
+            <div class="rtech-badge-pill">
+              <span class="rtech-sparkle">✨</span>
+              <span class="rtech-code-prefix">&lt;/&gt;</span>
+              <strong>rTechCoding</strong>
+            </div>
+            <p class="rtech-author">Designed &amp; Developed with ❤️ by <strong>Rahat Ansari</strong></p>
+            <p class="rtech-tagline">&lt;/ Think. Code. Build. /&gt;</p>
+            <p class="rtech-copy">© 2026 <strong>rTechCoding</strong> • All Rights Reserved</p>
+            <div class="rtech-links">
+              <a href="https://github.com/rTechCoding" target="_blank" rel="noopener" class="rtech-link">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" style="vertical-align: -2px;"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+                <span>github.com/rTechCoding</span>
+              </a>
+            </div>
+          </div>
+        </section>
+
+      </main>
+
+      <!-- Bottom Mobile Navigation Bar -->
+      <nav class="app-bottom-nav">
+        <button class="nav-item active" data-navigate="home" data-screen="home">
+          <span class="nav-icon">🏠</span>
+          <span class="nav-label">Home</span>
+        </button>
+        <button class="nav-item" data-navigate="games" data-screen="games">
+          <span class="nav-icon">🎮</span>
+          <span class="nav-label">Games</span>
+        </button>
+        <button class="nav-item" data-navigate="stats" data-screen="stats">
+          <span class="nav-icon">📊</span>
+          <span class="nav-label">Stats</span>
+        </button>
+        <button class="nav-item" data-navigate="leaderboard" data-screen="leaderboard">
+          <span class="nav-icon">🏆</span>
+          <span class="nav-label">Ranks</span>
+        </button>
+        <button class="nav-item" data-navigate="profile" data-screen="profile">
+          <span class="nav-icon">👤</span>
+          <span class="nav-label">Profile</span>
+        </button>
+        <button class="nav-item" data-navigate="settings" data-screen="settings">
+          <span class="nav-icon">⚙️</span>
+          <span class="nav-label">Settings</span>
+        </button>
+      </nav>
+
+    </div>
+  </div>
+
+  <!-- Desktop Outer Frame Footer -->
+  <footer class="desktop-rtech-footer">
+    <div class="desktop-rtech-inner">
+      <span class="d-brand"><strong>rTechCoding</strong></span>
+      <span class="d-sep">•</span>
+      <span class="d-tag">Crafted by <strong>Rahat Ansari</strong></span>
+      <span class="d-sep">•</span>
+      <span class="d-tagline">&lt;/ Think. Code. Build. /&gt;</span>
+      <span class="d-sep">•</span>
+      <a href="https://github.com/rTechCoding" target="_blank" rel="noopener" class="d-link">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" style="vertical-align: -1.5px; margin-right: 3px;"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+        <span>github.com/rTechCoding ↗</span>
+      </a>
+    </div>
+  </footer>
+
+  <!-- ==================== MODAL: GAME SETUP ==================== -->
+  <div id="modal-game-setup" class="app-modal">
+    <div class="modal-backdrop" onclick="window.app.closeGameSetup()"></div>
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 id="setup-modal-title">Game Setup</h3>
+        <button id="btn-close-setup" class="modal-close-btn">✕</button>
+      </div>
+      <p id="setup-modal-desc" class="modal-subtitle">Configure match settings before starting.</p>
+
+      <div class="modal-body">
+        
+        <!-- Universal Mode Selector (AI vs Local Friend vs Online Room) -->
+        <div class="form-group">
+          <label class="form-label">Game Mode</label>
+          <div class="segmented-control three-way">
+            <label class="segment-opt">
+              <input type="radio" name="global-play-mode" value="ai" checked>
+              <span>🤖 vs AI</span>
+            </label>
+            <label class="segment-opt">
+              <input type="radio" name="global-play-mode" value="pvp">
+              <span>👥 Local</span>
+            </label>
+            <label class="segment-opt">
+              <input type="radio" name="global-play-mode" value="online">
+              <span>🌐 Online Link</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Custom Player Names Input -->
+        <div class="form-group player-names-box">
+          <label class="form-label">Player Names</label>
+          <div class="player-names-grid">
+            <div class="name-field">
+              <span class="name-field-badge">Player 1 (You)</span>
+              <input type="text" id="setup-player1-name" class="form-input" placeholder="Your Name" value="Rahat Gamer" maxlength="16">
+            </div>
+            <div class="name-field" id="setup-player2-wrap">
+              <span id="setup-p2-badge" class="name-field-badge">Player 2 (Opponent)</span>
+              <input type="text" id="setup-player2-name" class="form-input" placeholder="Opponent Name" value="Friend" maxlength="16">
+            </div>
+            <div class="name-field" id="setup-player3-wrap" style="display: none;">
+              <span class="name-field-badge">Player 3 (Green)</span>
+              <input type="text" id="setup-player3-name" class="form-input" placeholder="Player 3 Name" value="Green" maxlength="16">
+            </div>
+            <div class="name-field" id="setup-player4-wrap" style="display: none;">
+              <span class="name-field-badge">Player 4 (Blue)</span>
+              <input type="text" id="setup-player4-name" class="form-input" placeholder="Player 4 Name" value="Blue" maxlength="16">
+            </div>
+          </div>
+        </div>
+
+        <!-- Online Room Options (shown when 'online' is chosen) -->
+        <div id="setup-online-room-box" class="online-setup-box" style="display: none;">
+          <div class="online-room-actions">
+            <button id="btn-create-new-room" class="btn-online-tab active">Create New Room</button>
+            <button id="btn-show-join-box" class="btn-online-tab">Join with Code</button>
+          </div>
+          
+          <div id="sub-box-join" style="display: none;" class="join-input-group">
+            <input type="text" id="input-join-room-code" class="form-input text-center uppercase" placeholder="Enter 6-char Room Code" maxlength="10">
+            <button id="btn-confirm-join-code" class="btn-primary">Join Room ➔</button>
+          </div>
+          <p id="online-room-hint" class="form-hint text-center">Creates a private room with a shareable link and 6-letter game code for your friend.</p>
+        </div>
+
+        <!-- ============ LUDO SETUP OPTIONS ============ -->
+        <div id="setup-options-ludo" class="setup-game-section">
+          <div id="ludo-battle-mode-group" class="form-group">
+            <label class="form-label">Battle Mode</label>
+            <div class="segmented-control">
+              <label class="segment-opt">
+                <input type="radio" name="ludo-mode" value="individual" checked>
+                <span>⚔️ Individual</span>
+              </label>
+              <label class="segment-opt">
+                <input type="radio" name="ludo-mode" value="team">
+                <span>🛡️ Team (2 vs 2)</span>
+              </label>
+            </div>
+            <small class="form-hint" id="ludo-mode-hint">Team Mode: Red + Yellow (Team A) vs Green + Blue (Team B). Teammates cannot capture each other!</small>
+          </div>
+
+          <div id="ludo-player-count-group" class="form-group">
+            <label class="form-label">Number of Players</label>
+            <select id="ludo-player-count" class="form-select">
+              <option value="4" selected>4 Players (Full Board)</option>
+              <option value="3">3 Players</option>
+              <option value="2">2 Players (Duel)</option>
+            </select>
+          </div>
+
+          <!-- 2-Player Format: Single vs Double / Team -->
+          <div id="ludo-two-player-format-group" class="form-group" style="display: none;">
+            <label class="form-label">2-Player Game Format</label>
+            <div class="segmented-control">
+              <label class="segment-opt">
+                <input type="radio" name="ludo-two-player-format" value="single" checked>
+                <span>👤 Single (1 Color Each)</span>
+              </label>
+              <label class="segment-opt">
+                <input type="radio" name="ludo-two-player-format" value="double">
+                <span>👥 Double (2 Colors Each)</span>
+              </label>
+            </div>
+            <small class="form-hint" id="two-player-format-hint">
+              <strong>Single:</strong> 1 Color each (Red vs Yellow).<br>
+              <strong>Double:</strong> Team 1 (Red &amp; Yellow) vs Team 2 (Blue &amp; Green)!
+            </small>
+          </div>
+
+          <div id="ludo-difficulty-group" class="form-group">
+            <label class="form-label">Computer AI Level</label>
+            <select id="ludo-difficulty" class="form-select">
+              <option value="easy">Easy (Casual)</option>
+              <option value="medium" selected>Medium (Strategic)</option>
+              <option value="hard">Hard (Aggressive Pro)</option>
+            </select>
+          </div>
+
+          <div id="ludo-roster-group" class="form-group">
+            <label class="form-label">Player Roster (Toggle Bot vs Human)</label>
+            <div class="player-roster-list">
+              <div class="roster-slot slot-red">
+                <span class="slot-badge badge-red">RED</span>
+                <span class="slot-name">Player 1 (You)</span>
+                <label class="toggle-sm"><input type="checkbox" id="ludo-p1-ai"><span class="slider-sm"></span> Bot</label>
+              </div>
+              <div class="roster-slot slot-yellow">
+                <span class="slot-badge badge-yellow">YELLOW</span>
+                <span class="slot-name">Player 2</span>
+                <label class="toggle-sm"><input type="checkbox" id="ludo-p2-ai" checked><span class="slider-sm"></span> Bot</label>
+              </div>
+              <div id="ludo-p3-config" class="roster-slot slot-green">
+                <span class="slot-badge badge-green">GREEN</span>
+                <span class="slot-name">Player 3</span>
+                <label class="toggle-sm"><input type="checkbox" id="ludo-p3-ai" checked><span class="slider-sm"></span> Bot</label>
+              </div>
+              <div id="ludo-p4-config" class="roster-slot slot-blue">
+                <span class="slot-badge badge-blue">BLUE</span>
+                <span class="slot-name">Player 4</span>
+                <label class="toggle-sm"><input type="checkbox" id="ludo-p4-ai" checked><span class="slider-sm"></span> Bot</label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ============ TIC-TAC-TOE SETUP OPTIONS ============ -->
+        <div id="setup-options-ttt" class="setup-game-section" style="display: none;">
+          <div class="form-group">
+            <label class="form-label">Choose Your Symbol</label>
+            <div class="segmented-control">
+              <label class="segment-opt">
+                <input type="radio" name="ttt-symbol" value="X" checked>
+                <span>❌ Play as X (First)</span>
+              </label>
+              <label class="segment-opt">
+                <input type="radio" name="ttt-symbol" value="O">
+                <span>⭕ Play as O (Second)</span>
+              </label>
+            </div>
+          </div>
+
+          <div id="ttt-difficulty-group" class="form-group">
+            <label class="form-label">AI Difficulty Level</label>
+            <select id="ttt-difficulty" class="form-select">
+              <option value="easy">Easy (Random moves)</option>
+              <option value="medium" selected>Medium (Adaptive)</option>
+              <option value="hard">Hard (Invincible Minimax)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- ============ CHESS SETUP OPTIONS ============ -->
+        <div id="setup-options-chess" class="setup-game-section" style="display: none;">
+          <div class="form-group">
+            <label class="form-label">Play Side</label>
+            <div class="segmented-control">
+              <label class="segment-opt">
+                <input type="radio" name="chess-color" value="w" checked>
+                <span>♙ White (First Move)</span>
+              </label>
+              <label class="segment-opt">
+                <input type="radio" name="chess-color" value="b">
+                <span>♟ Black</span>
+              </label>
+            </div>
+          </div>
+
+          <div id="chess-difficulty-group" class="form-group">
+            <label class="form-label">AI Engine Depth</label>
+            <select id="chess-difficulty" class="form-select">
+              <option value="easy">Novice (Fast / Basic)</option>
+              <option value="medium" selected>Club Player (Positional)</option>
+              <option value="hard">Master (Alpha-Beta Minimax)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Time Control</label>
+            <select id="chess-timer-select" class="form-select">
+              <option value="3">3 Minutes (Blitz)</option>
+              <option value="5">5 Minutes (Rapid)</option>
+              <option value="10" selected>10 Minutes (Standard)</option>
+              <option value="0">Casual (No Clock)</option>
+            </select>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="modal-footer">
+        <button id="btn-start-game" class="btn-giant-start">
+          START GAME <span class="arrow-sparkle">🚀</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL: ROOM LOBBY / SHARE LINK ==================== -->
+  <div id="modal-room-lobby" class="app-modal">
+    <div class="modal-backdrop" id="lobby-modal-backdrop"></div>
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 id="lobby-modal-title">Game Room Ready! 🌐</h3>
+        <button class="modal-close-btn" id="btn-close-lobby-modal" type="button">✕</button>
+      </div>
+      
+      <div class="room-lobby-body">
+        
+        <!-- HOST VIEW ONLY: Shown only to Room Owner/Creator -->
+        <div id="lobby-host-view">
+          <p class="modal-subtitle">Share this code or link with your friend to play together in real-time!</p>
+          
+          <div class="room-code-display-card">
+            <span class="room-code-label">GAME ROOM CODE</span>
+            <div class="room-code-val" id="lobby-room-code">LUDO-8472</div>
+            <button id="btn-copy-code-action" class="btn-copy-lg">📋 Copy Code</button>
+          </div>
+
+          <div class="share-link-group">
+            <input type="text" id="lobby-share-link-input" class="form-input share-link-text" readonly value="https://...">
+            <button id="btn-copy-link-action" class="btn-primary">Copy Link</button>
+          </div>
+
+          <div class="room-action-buttons-group">
+            <button id="btn-share-whatsapp" class="btn-share-whatsapp" type="button">
+              <svg class="wa-btn-icon" viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
+                <path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0 0 12.04 2zm.01 1.67c2.2 0 4.26.86 5.82 2.42a8.225 8.225 0 0 1 2.41 5.83c0 4.54-3.7 8.24-8.24 8.24-1.48 0-2.93-.4-4.2-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.196 8.196 0 0 1-1.26-4.38c0-4.54 3.7-8.24 8.24-8.24zm4.52 11.66c-.25-.12-1.47-.72-1.7-.81-.23-.08-.39-.12-.56.12-.17.25-.64.81-.79.97-.14.17-.29.19-.54.07-.25-.12-1.05-.39-2-1.23-.74-.66-1.23-1.47-1.38-1.72-.14-.25-.02-.38.11-.5.11-.11.25-.29.37-.43.12-.14.17-.25.25-.41.08-.17.04-.31-.02-.43s-.56-1.34-.76-1.84c-.2-.48-.41-.42-.56-.43h-.48c-.17 0-.43.06-.66.31-.23.25-.87.85-.87 2.07s.89 2.4 1.02 2.57c.12.17 1.75 2.68 4.24 3.76.59.26 1.05.41 1.41.53.6.19 1.14.16 1.57.1.48-.07 1.47-.6 1.68-1.18.21-.58.21-1.07.14-1.18-.06-.12-.22-.19-.47-.31z"/>
+              </svg>
+              <span>Share via WhatsApp</span>
+            </button>
+            <button id="btn-native-share" class="btn-share-other" type="button">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="18" cy="5" r="3"></circle>
+                <circle cx="6" cy="12" r="3"></circle>
+                <circle cx="18" cy="19" r="3"></circle>
+                <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+                <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+              </svg>
+              <span>Other Apps</span>
+            </button>
+          </div>
+
+          <!-- Status Strip: changes to show friend when joined -->
+          <div class="lobby-waiting-status" id="lobby-status-strip">
+            <div class="live-dot pulse-lg" id="lobby-status-dot"></div>
+            <span id="lobby-waiting-text">Waiting for friend to connect...</span>
+          </div>
+
+          <!-- Connected Friend Profile Box (Appears when friend joins!) -->
+          <div id="lobby-friend-card" class="lobby-friend-connected-card" style="display: none;">
+            <div class="friend-card-avatar" id="lobby-friend-avatar">🦊</div>
+            <div class="friend-card-info">
+              <div class="friend-status-pill">Friend Connected • Ready to Play</div>
+              <strong class="friend-card-name" id="lobby-friend-name">Friend</strong>
+            </div>
+            <span class="friend-connected-check">✅</span>
+          </div>
+        </div>
+
+        <!-- GUEST / JOIN ROOM VIEW: Shown ONLY to user who joined room (NO share buttons, NO links, NO play button) -->
+        <div id="lobby-guest-view" style="display: none;" class="guest-lobby-wrap">
+          <div class="room-code-badge-strip">
+            <span>Connected Room Code:</span>
+            <strong id="lobby-guest-code-display">ABC123</strong>
+          </div>
+
+          <div id="lobby-guest-mode-badge" style="display: none; margin-bottom: 12px; font-weight: 700; font-size: 0.82rem; color: var(--primary); background: rgba(99, 102, 241, 0.1); border: 1px solid rgba(99, 102, 241, 0.25); border-radius: 12px; padding: 6px 12px; text-align: center;">
+            🎲 2 Players • Double (2 Colors Each)
+          </div>
+
+          <div class="guest-host-connected-box">
+            <div class="gh-avatar" id="lobby-guest-host-avatar">🥷</div>
+            <div class="gh-info">
+              <span class="gh-role">Room Creator (Owner)</span>
+              <strong class="gh-name" id="lobby-guest-host-name">Host</strong>
+            </div>
+            <span class="gh-crown">👑</span>
+          </div>
+
+          <div class="guest-waiting-card">
+            <div class="live-dot pulse-lg"></div>
+            <div class="guest-waiting-text-wrap">
+              <h4 id="guest-waiting-heading">Waiting for Host to start match...</h4>
+              <p>The game will start automatically on your screen as soon as <strong id="guest-host-name-highlight">the room creator</strong> clicks Start!</p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Footer Buttons: Shown to Room Owner (Host) -->
+      <div class="modal-footer room-lobby-footer" id="lobby-host-footer" style="display: flex; flex-direction: column; gap: 8px;">
+        <button id="btn-start-room-now" class="btn-start-game-now" type="button">
+          <span id="btn-start-room-text">START MATCH WITH FRIEND 🚀</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL: JOIN GAME WITH NAME ==================== -->
+  <div id="modal-join-game-with-name" class="app-modal">
+    <div class="modal-backdrop" id="join-modal-backdrop"></div>
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 id="join-modal-title">Join Game Match! 🎮</h3>
+        <button class="modal-close-btn" id="btn-close-join-modal" type="button">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="invite-banner-box">
+          <span class="invite-icon">🤝</span>
+          <div class="invite-text">
+            <p id="join-invite-text"><strong>Rahat</strong> invited you to play!</p>
+            <span id="join-invite-game-badge" class="badge victory">Ludo Championship</span>
+          </div>
+        </div>
+
+        <div class="room-code-badge-strip">
+          <span>Room Code:</span>
+          <strong id="join-modal-room-code">LUDO-8472</strong>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Enter Your Player Name <span style="color: #ef4444; font-weight: 800;">* (Required)</span></label>
+          <input type="text" id="input-join-player-name" class="form-input text-center" maxlength="16" placeholder="Your Name is Required" required>
+          <small id="join-name-error" class="form-hint" style="color: #ef4444; display: none; font-weight: 700;">⚠️ Please enter your name to join the match!</small>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Pick Your Avatar</label>
+          <div class="avatar-picker-grid mini">
+            <span class="join-avatar-item selected" data-avatar="🦊">🦊</span>
+            <span class="join-avatar-item" data-avatar="👑">👑</span>
+            <span class="join-avatar-item" data-avatar="🤖">🤖</span>
+            <span class="join-avatar-item" data-avatar="⚡">⚡</span>
+            <span class="join-avatar-item" data-avatar="🦄">🦄</span>
+            <span class="join-avatar-item" data-avatar="🥷">🥷</span>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer" style="display: flex; flex-direction: column; gap: 8px;">
+        <button id="btn-confirm-join-with-name" class="btn-giant-start">
+          JOIN MATCH & WAIT FOR HOST ➔
+        </button>
+        <button type="button" id="btn-decline-join-modal" class="btn-text" style="color: var(--text-dim); font-size: 0.85rem; padding: 4px; text-decoration: underline;">
+          Or Decline & Browse Games
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL: MULTI-COLOR ALERT & CONFIRM POPUP ==================== -->
+  <div id="modal-alert-popup" class="app-modal">
+    <div class="modal-backdrop" id="alert-popup-backdrop"></div>
+    <div class="modal-dialog alert-popup-dialog" id="alert-popup-dialog">
+      <div class="alert-popup-glow" id="alert-popup-glow"></div>
+      <div class="alert-popup-icon-ring" id="alert-popup-icon-wrap">
+        <span id="alert-popup-icon">🔔</span>
+      </div>
+      <h3 id="alert-popup-title" class="alert-popup-title">Notification</h3>
+      <p id="alert-popup-message" class="alert-popup-message">Description goes here.</p>
+      
+      <div class="alert-popup-actions" id="alert-popup-actions">
+        <button id="btn-alert-cancel" class="btn-popup-cancel" style="display: none;">Cancel</button>
+        <button id="btn-alert-confirm" class="btn-popup-confirm">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL: GAME OVER ==================== -->
+  <div id="modal-game-over" class="app-modal">
+    <div class="modal-backdrop"></div>
+    <div class="modal-dialog celebration-dialog">
+      <div class="game-over-banner">
+        <div class="trophy-bounce">🏆</div>
+        <h2 id="game-over-title">Victory!</h2>
+        <p id="game-over-message">You conquered the match with style!</p>
+      </div>
+
+      <div class="modal-action-stack">
+        <button id="btn-game-over-again" class="btn-primary">Play Again 🔄</button>
+        <button id="btn-game-over-restart" class="btn-secondary">New Setup ⚙️</button>
+        <button id="btn-game-over-home" class="btn-text">Back to Home 🏠</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL: INTERACTIVE PIECE & GOTI RULES GUIDE ==================== -->
+  <div id="modal-piece-guide" class="app-modal">
+    <div class="modal-backdrop" onclick="window.pieceGuideEngine.close()"></div>
+    <div class="modal-dialog piece-guide-dialog">
+      <div class="modal-header">
+        <div class="guide-header-title">
+          <span id="guide-modal-badge" class="guide-header-badge">Rules & Moves</span>
+          <h3 id="guide-modal-heading">📖 Rules & Strategy Guide</h3>
+        </div>
+        <button class="modal-close-btn" onclick="window.pieceGuideEngine.close()">✕</button>
+      </div>
+
+      <!-- Piece Selector Carousel Chips -->
+      <div class="piece-selector-scroll" id="piece-guide-selector">
+        <!-- Rendered dynamically by pieceGuideEngine -->
+      </div>
+
+      <div class="piece-guide-content">
+        <!-- Top Hero Badge of Active Piece -->
+        <div class="piece-hero-card">
+          <div class="piece-hero-info">
+            <h4 id="guide-piece-title">Knight (घोड़ा)</h4>
+            <p id="guide-piece-desc" class="guide-piece-desc">The only piece that can jump over other pieces.</p>
+          </div>
+          <span id="guide-piece-points" class="piece-points-pill">3 Points</span>
+        </div>
+
+        <!-- Interactive Animated Demo Board -->
+        <div class="guide-board-card">
+          <div class="demo-board-top-bar">
+            <span class="demo-board-label">🎮 Live Move Simulator (Click any square)</span>
+            <button id="btn-play-guide-anim" class="btn-play-anim">▶️ Play Move Animation</button>
+          </div>
+          <div class="guide-demo-board-wrapper">
+            <div id="guide-demo-board" class="guide-demo-grid">
+              <!-- 5x5 grid rendered dynamically -->
+            </div>
+          </div>
+          <div class="demo-board-legend">
+            <span class="legend-item"><span class="legend-dot dot-move"></span> Valid Move</span>
+            <span class="legend-item"><span class="legend-dot dot-capture"></span> Capture Target</span>
+          </div>
+        </div>
+
+        <!-- Movement & Powers Breakdown -->
+        <div class="guide-rules-grid">
+          <div class="rule-card">
+            <div class="rule-card-header">
+              <span class="rule-icon">🚶</span>
+              <strong>How It Moves (कदम व चालें)</strong>
+            </div>
+            <p id="guide-move-rule">Moves in an L-shape.</p>
+          </div>
+
+          <div class="rule-card">
+            <div class="rule-card-header">
+              <span class="rule-icon">⚔️</span>
+              <strong>How It Captures (हमला)</strong>
+            </div>
+            <p id="guide-capture-rule">Captures where it lands.</p>
+          </div>
+
+          <div class="rule-card special-power">
+            <div class="rule-card-header">
+              <span class="rule-icon">🌟</span>
+              <strong>Special Superpowers</strong>
+            </div>
+            <p id="guide-special-rule">Can jump over pieces.</p>
+          </div>
+
+          <div class="rule-card pro-tip">
+            <div class="rule-card-header">
+              <span class="rule-icon">💡</span>
+              <strong>Grandmaster Strategy Tip</strong>
+            </div>
+            <p id="guide-pro-tip">Control the center.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-primary" onclick="window.pieceGuideEngine.close()">Got It, Let's Play! 🚀</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL: EDIT / SETUP PROFILE ==================== -->
+  <div id="modal-edit-profile" class="app-modal">
+    <div class="modal-backdrop" id="edit-profile-backdrop"></div>
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 id="edit-profile-modal-title">Player Profile Setup 👤</h3>
+        <button class="modal-close-btn" id="btn-close-profile-modal" type="button">✕</button>
+      </div>
+      <div class="modal-body">
+        <p id="profile-modal-desc" class="modal-subtitle">Set your player details to play games &amp; save your progress to storage!</p>
+        
+        <div class="form-group">
+          <label class="form-label">Choose Avatar</label>
+          <div class="avatar-picker-grid">
+            <span class="avatar-picker-item selected" data-avatar="🥷">🥷</span>
+            <span class="avatar-picker-item" data-avatar="👑">👑</span>
+            <span class="avatar-picker-item" data-avatar="🦊">🦊</span>
+            <span class="avatar-picker-item" data-avatar="🤖">🤖</span>
+            <span class="avatar-picker-item" data-avatar="⚡">⚡</span>
+            <span class="avatar-picker-item" data-avatar="🦄">🦄</span>
+            <span class="avatar-picker-item" data-avatar="🧙">🧙</span>
+            <span class="avatar-picker-item" data-avatar="🐲">🐲</span>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Player Name <span style="color: #ef4444; font-weight: 800;">* (Required)</span></label>
+          <input type="text" id="edit-profile-name" class="form-input" maxlength="18" placeholder="Enter Your Name" required>
+          <small id="profile-name-error" class="form-hint" style="color: #ef4444; display: none; font-weight: 700;">⚠️ Please enter your name to save &amp; play!</small>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Player Bio / Tagline</label>
+          <input type="text" id="edit-profile-bio" class="form-input" maxlength="60" placeholder="Pro strategist &amp; board conqueror 🎮">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="btn-cancel-profile" class="btn-secondary" type="button">Cancel</button>
+        <button id="btn-save-profile" class="btn-primary" type="button">Save Profile &amp; Play ➔</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Fullscreen Particle Confetti Canvas -->
+  <canvas id="confetti-canvas"></canvas>
+
+  <!-- App Scripts -->
+  <script src="assets/js/audio.js"></script>
+  <script src="assets/js/confetti.js"></script>
+  <script src="assets/js/storage.js"></script>
+  <script src="assets/js/multiplayer.js"></script>
+  <script src="assets/js/tictactoe.js"></script>
+  <script src="assets/js/chess.js"></script>
+  <script src="assets/js/ludo.js"></script>
+  <script src="assets/js/piece-guide.js"></script>
+  <script src="assets/js/app.js"></script>
+</body>
+</html>
