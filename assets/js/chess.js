@@ -68,15 +68,10 @@ class TournamentChessGame {
         } else if (action === 'CHESS_RESIGN') {
           this.resign(true);
         } else if (action === 'CHESS_RESTART') {
-          this.setup({
-            mode: 'online',
-            difficulty: this.difficulty,
-            playerColor: this.playerColor,
-            timerMinutes: this.clocks.max > 0 ? this.clocks.max / 60 : 0,
-            whiteName: this.whiteName,
-            blackName: this.blackName
-          });
-          if (window.app) window.app.showToast('Chess match restarted!', 'info', '🔄');
+          document.getElementById('modal-game-over')?.classList.remove('open');
+          if (window.app) {
+            window.app.restartCurrentGame('chess');
+          }
         }
       };
     }
@@ -312,16 +307,10 @@ class TournamentChessGame {
               message: `The enemy king was cornered beyond defense!`,
               gameType: 'chess',
               onPlayAgain: () => {
-                if (this.mode === 'online' && window.multiplayerManager) {
-                  window.multiplayerManager.sendAction('CHESS_RESTART', {});
-                }
-                this.setup({ mode: this.mode, difficulty: this.difficulty, playerColor: this.playerColor, whiteName: this.whiteName, blackName: this.blackName });
+                if (window.app) window.app.restartCurrentGame('chess');
               },
               onRestart: () => {
-                if (this.mode === 'online' && window.multiplayerManager) {
-                  window.multiplayerManager.sendAction('CHESS_RESTART', {});
-                }
-                this.setup({ mode: this.mode, difficulty: this.difficulty, playerColor: this.playerColor, whiteName: this.whiteName, blackName: this.blackName });
+                if (window.app) window.app.restartCurrentGame('chess');
               }
             });
           }
@@ -336,16 +325,10 @@ class TournamentChessGame {
               message: `No legal moves remaining and king is safe. Honor is shared!`,
               gameType: 'chess',
               onPlayAgain: () => {
-                if (this.mode === 'online' && window.multiplayerManager) {
-                  window.multiplayerManager.sendAction('CHESS_RESTART', {});
-                }
-                this.setup({ mode: this.mode, difficulty: this.difficulty, playerColor: this.playerColor, whiteName: this.whiteName, blackName: this.blackName });
+                if (window.app) window.app.restartCurrentGame('chess');
               },
               onRestart: () => {
-                if (this.mode === 'online' && window.multiplayerManager) {
-                  window.multiplayerManager.sendAction('CHESS_RESTART', {});
-                }
-                this.setup({ mode: this.mode, difficulty: this.difficulty, playerColor: this.playerColor, whiteName: this.whiteName, blackName: this.blackName });
+                if (window.app) window.app.restartCurrentGame('chess');
               }
             });
           }

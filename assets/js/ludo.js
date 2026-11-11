@@ -17,9 +17,9 @@ const LUDO_OFFSETS = {
   blue: 39
 };
 
-// Only the 4 golden STAR cells are safe from being killed!
-// Starting cells are NOT safe (an opponent can be captured on starting cells!)
-const LUDO_SAFE_CELLS = [8, 21, 34, 47];
+// [PlaySphere Enhancement]: Authentic Ludo Safe Cells (4 Starting Cells + 4 Star Cells)
+// Tokens on ANY of these 8 cells (0, 8, 13, 21, 26, 34, 39, 47) CANNOT be killed!
+const LUDO_SAFE_CELLS = [0, 8, 13, 21, 26, 34, 39, 47];
 
 // Coordinates on 15x15 grid (row, col) for outer 52 circuit steps
 const LUDO_TRACK_COORDS = [
@@ -361,192 +361,35 @@ class RealLudoGame {
       });
     }
 
+    /* [PlaySphere Enhancement]: Instant goti move (animation removed during moving time per user request) */
     if (token.step === -1) {
-      // Release from yard with parabolic leap animation
-      this.animateYardExit(color, token, () => {
-        this.checkCellEvents(color, token);
-      });
+      token.step = 0;
+      window.soundEngine.playYardExit();
+      this.renderPawns();
+      this.checkCellEvents(color, token);
     } else {
       const targetStep = token.step + this.diceValue;
-      this.animateStepMovement(color, token, targetStep, () => {
-        this.checkCellEvents(color, token);
-      });
-    }
-  }
-
-  animateYardExit(color, token, callback) {
-    const flyingLayer = document.getElementById('ludo-flying-layer');
-    if (!flyingLayer) {
-      token.step = 0;
-      this.renderPawns();
-      callback();
-      return;
-    }
-
-    this.animatingTokenKey = `${color}_${token.id}`;
-    this.renderPawns();
-
-    flyingLayer.innerHTML = '';
-    const flyingG = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-    flyingG.setAttribute('class', 'ludo-flying-goti');
-    flyingG.innerHTML = this.getPawnSvgMarkup(color, false, false);
-    flyingLayer.appendChild(flyingG);
-
-    const fromPt = this.getTokenSvgCoords(color, -1, token.id);
-    const toPt = this.getTokenSvgCoords(color, 0, token.id);
-
-    const shadowEl = flyingG.querySelector('.pawn-ground-shadow');
-    const baseRingEl = flyingG.querySelector('.pawn-base-ring');
-    const bodyEl = flyingG.querySelector('.pawn-body-group');
-
-    window.soundEngine.playYardExit();
-
-    const duration = 280;
-    const startTime = performance.now();
-    const arcHeight = 35; // high release leap arc
-
-    const stepFrame = (now) => {
-      const elapsed = now - startTime;
-      const p = Math.min(1, elapsed / duration);
-
-      const arc = 4 * p * (1 - p);
-      const curArcY = -arcHeight * arc;
-
-      const curX = fromPt.x + (toPt.x - fromPt.x) * p;
-      const curY = fromPt.y + (toPt.y - fromPt.y) * p + curArcY;
-
-      flyingG.setAttribute('transform', `translate(${curX}, ${curY})`);
-
-      if (bodyEl) {
-        const tilt = 12 * Math.sin(p * Math.PI);
-        bodyEl.setAttribute('transform', `rotate(${tilt})`);
-      }
-
-      if (shadowEl) {
-        const shadowScale = 1 - 0.5 * arc;
-        shadowEl.setAttribute('transform', `translate(0, ${-curArcY}) scale(${shadowScale})`);
-      }
-
-      if (baseRingEl) {
-        baseRingEl.setAttribute('transform', `translate(0, ${-curArcY})`);
-      }
-
-      if (p < 1) {
-        requestAnimationFrame(stepFrame);
-      } else {
-        window.soundEngine.playHop();
-        token.step = 0;
-        flyingLayer.innerHTML = '';
-        this.animatingTokenKey = null;
-        this.renderPawns();
-        callback();
-      }
-    };
-
-    requestAnimationFrame(stepFrame);
-  }
-
-  animateStepMovement(color, token, targetStep, callback) {
-    const flyingLayer = document.getElementById('ludo-flying-layer');
-    if (!flyingLayer) {
       token.step = targetStep;
+      window.soundEngine.playHop();
       this.renderPawns();
-      callback();
-      return;
+      this.checkCellEvents(color, token);
     }
+  }
 
-    this.animatingTokenKey = `${color}_${token.id}`;
+  /* [PlaySphere Enhancement]: Instant yard release without animation */
+  animateYardExit(color, token, callback) {
+    token.step = 0;
+    window.soundEngine.playYardExit();
     this.renderPawns();
+    if (callback) callback();
+  }
 
-    flyingLayer.innerHTML = '';
-    const flyingG = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-    flyingG.setAttribute('class', 'ludo-flying-goti');
-    flyingG.innerHTML = this.getPawnSvgMarkup(color, false, false);
-    flyingLayer.appendChild(flyingG);
-
-    const shadowEl = flyingG.querySelector('.pawn-ground-shadow');
-    const baseRingEl = flyingG.querySelector('.pawn-base-ring');
-    const bodyEl = flyingG.querySelector('.pawn-body-group');
-
-    const totalSteps = targetStep - token.step;
-    let currentStepIdx = 0;
-
-    const performNextHop = () => {
-      if (currentStepIdx >= totalSteps) {
-        flyingLayer.innerHTML = '';
-        this.animatingTokenKey = null;
-        token.step = targetStep;
-        this.renderPawns();
-        callback();
-        return;
-      }
-
-      const fromStep = token.step;
-      const toStep = fromStep + 1;
-      const fromPt = this.getTokenSvgCoords(color, fromStep, token.id);
-      const toPt = this.getTokenSvgCoords(color, toStep, token.id);
-
-      const hopDuration = 150;
-      const hopStartTime = performance.now();
-      const arcHeight = 22;
-
-      const dx = toPt.x - fromPt.x;
-      const dy = toPt.y - fromPt.y;
-      const tiltAngle = dx > 0 ? 10 : (dx < 0 ? -10 : (dy > 0 ? 6 : -6));
-
-      const stepFrame = (now) => {
-        const elapsed = now - hopStartTime;
-        const p = Math.min(1, elapsed / hopDuration);
-
-        const arc = 4 * p * (1 - p);
-        const curArcY = -arcHeight * arc;
-
-        const curX = fromPt.x + (toPt.x - fromPt.x) * p;
-        const curY = fromPt.y + (toPt.y - fromPt.y) * p + curArcY;
-
-        flyingG.setAttribute('transform', `translate(${curX}, ${curY})`);
-
-        if (bodyEl) {
-          const curTilt = tiltAngle * Math.sin(p * Math.PI);
-          bodyEl.setAttribute('transform', `rotate(${curTilt})`);
-        }
-
-        if (shadowEl) {
-          const shadowScale = 1 - 0.45 * arc;
-          const shadowOpacity = 0.45 - 0.25 * arc;
-          shadowEl.setAttribute('transform', `translate(0, ${-curArcY}) scale(${shadowScale})`);
-          shadowEl.setAttribute('fill', `rgba(15, 23, 42, ${shadowOpacity})`);
-        }
-
-        if (baseRingEl) {
-          baseRingEl.setAttribute('transform', `translate(0, ${-curArcY})`);
-        }
-
-        if (p < 1) {
-          requestAnimationFrame(stepFrame);
-        } else {
-          token.step = toStep;
-          currentStepIdx++;
-
-          window.soundEngine.playHop();
-
-          if (bodyEl) {
-            bodyEl.setAttribute('transform', 'scale(1.15, 0.86)');
-            setTimeout(() => {
-              if (bodyEl) bodyEl.setAttribute('transform', 'scale(1, 1)');
-            }, 30);
-          }
-
-          setTimeout(() => {
-            performNextHop();
-          }, 35);
-        }
-      };
-
-      requestAnimationFrame(stepFrame);
-    };
-
-    performNextHop();
+  /* [PlaySphere Enhancement]: Instant step movement without slow goti bouncing animation */
+  animateStepMovement(color, token, targetStep, callback) {
+    token.step = targetStep;
+    window.soundEngine.playHop();
+    this.renderPawns();
+    if (callback) callback();
   }
 
   checkCellEvents(color, token) {
@@ -579,6 +422,9 @@ class RealLudoGame {
             // If opponent is also on outer track
             if (oppTok.step >= 0 && oppTok.step <= 50) {
               const oppGlobal = (LUDO_OFFSETS[oppColor] + oppTok.step) % 52;
+              // [PlaySphere Enhancement]: Opponent on any of the 8 safe squares (starts or stars) CANNOT be killed!
+              if (LUDO_SAFE_CELLS.includes(oppGlobal) || isSafe) return;
+
               if (oppGlobal === globalPos) {
                 // KILLED! Send back to yard
                 oppTok.step = -1;
@@ -648,28 +494,14 @@ class RealLudoGame {
           message: winDesc,
           gameType: 'ludo',
           onPlayAgain: () => {
-            if (this.isOnlineRoom && window.multiplayerManager) {
-              window.multiplayerManager.sendAction('LUDO_RESTART', {});
+            if (window.app) {
+              window.app.restartCurrentGame('ludo');
             }
-            this.setup({
-              playerCount: this.twoPlayerFormat === 'double' ? 2 : this.players.length,
-              twoPlayerFormat: this.twoPlayerFormat,
-              mode: this.isTeamMode ? 'team' : 'individual',
-              difficulty: this.difficulty,
-              isOnlineRoom: this.isOnlineRoom
-            });
           },
           onRestart: () => {
-            if (this.isOnlineRoom && window.multiplayerManager) {
-              window.multiplayerManager.sendAction('LUDO_RESTART', {});
+            if (window.app) {
+              window.app.restartCurrentGame('ludo');
             }
-            this.setup({
-              playerCount: this.twoPlayerFormat === 'double' ? 2 : this.players.length,
-              twoPlayerFormat: this.twoPlayerFormat,
-              mode: this.isTeamMode ? 'team' : 'individual',
-              difficulty: this.difficulty,
-              isOnlineRoom: this.isOnlineRoom
-            });
           }
         });
       }
@@ -799,14 +631,10 @@ class RealLudoGame {
       this.isRolling = false;
       this.render();
     } else if (action === 'LUDO_RESTART') {
-      this.setup({
-        playerCount: this.twoPlayerFormat === 'double' ? 2 : this.players.length,
-        twoPlayerFormat: this.twoPlayerFormat,
-        mode: this.isTeamMode ? 'team' : 'individual',
-        difficulty: this.difficulty,
-        isOnlineRoom: true
-      });
-      if (window.app) window.app.showToast('Match restarted!', 'info', '🔄');
+      document.getElementById('modal-game-over')?.classList.remove('open');
+      if (window.app) {
+        window.app.restartCurrentGame('ludo');
+      }
     }
   }
 

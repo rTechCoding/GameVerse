@@ -33,7 +33,12 @@ class TicTacToeGame {
         if (action === 'TTT_MOVE') {
           this.makeMove(payload.index, payload.player, true);
         } else if (action === 'TTT_RESTART') {
-          this.restartRound(true);
+          document.getElementById('modal-game-over')?.classList.remove('open');
+          if (window.app) {
+            window.app.restartCurrentGame('tictactoe');
+          } else {
+            this.restartRound(true);
+          }
         } else if (action === 'TTT_NEW_GAME') {
           this.newGame(true);
         }
@@ -263,8 +268,14 @@ class TicTacToeGame {
           title,
           message,
           gameType: 'tictactoe',
-          onPlayAgain: () => this.restartRound(),
-          onRestart: () => this.newGame()
+          onPlayAgain: () => {
+            if (window.app) window.app.restartCurrentGame('tictactoe');
+            else this.restartRound();
+          },
+          onRestart: () => {
+            if (window.app) window.app.restartCurrentGame('tictactoe');
+            else this.newGame();
+          }
         });
       }
     }, 600);

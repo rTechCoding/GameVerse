@@ -848,20 +848,48 @@ class App {
     if (hostView) hostView.style.display = 'block';
     if (guestView) guestView.style.display = 'none';
 
-    // STRICT OWNER RULE:
-    // Game CANNOT play without friend joining!
-    // Start / Play button is HIDDEN until friend connects!
-    if (hostFooter) hostFooter.style.display = 'none';
+    // Host Footer: Host can always start match with friend (never play with bot in online mode)
+    if (hostFooter) hostFooter.style.display = 'flex';
     if (startBtn) {
-      startBtn.style.display = 'none';
-      startBtn.disabled = true;
-      startBtn.classList.remove('friend-ready');
+      startBtn.style.display = 'flex';
+      startBtn.disabled = false;
+      const initialFriendName = window.multiplayerManager.hasGuestJoined ? (window.multiplayerManager.guestName || 'Friend') : null;
+      if (initialFriendName) {
+        startBtn.classList.add('friend-ready');
+        if (startBtnText) {
+          startBtnText.textContent = `START MATCH WITH ${initialFriendName.toUpperCase()} 🚀`;
+        }
+      } else {
+        startBtn.classList.remove('friend-ready');
+        if (startBtnText) {
+          startBtnText.textContent = 'START MATCH WITH FRIEND 🚀';
+        }
+      }
+      startBtn.onclick = () => {
+        window.soundEngine?.playClick();
+        window.multiplayerManager.isMatchStarted = true;
+        const fName = (window.multiplayerManager.guestName && window.multiplayerManager.guestName.trim()) ? window.multiplayerManager.guestName.trim() : 'Friend';
+        // Broadcast match start to guest across all channels
+        window.multiplayerManager.sendStartMatch();
+        modal.classList.remove('open');
+        this.startGameWithMode(gameType || window.multiplayerManager.gameType, 'online', hostName, fName);
+      };
     }
 
     // Reset waiting status
     if (friendCard) friendCard.style.display = 'none';
     if (waitingText) {
-      waitingText.innerHTML = `<span>Waiting for friend to connect...</span><br><small style="color:var(--text-muted);font-weight:600;font-size:0.75rem;">🔒 Match will unlock automatically when friend joins!</small>`;
+      waitingText.innerHTML = `<span>Waiting for friend to connect...</span><br><small style="color:var(--text-muted);font-weight:600;font-size:0.75rem;">🔒 Match will unlock automatically when friend joins!</small> <button id="btn-force-refresh-lobby" type="button" style="display:inline-block;margin-top:5px;background:none;border:1px solid var(--border-color);border-radius:10px;padding:2px 8px;font-size:0.72rem;cursor:pointer;color:var(--primary);font-weight:700;">Check Status 🔄</button>`;
+      const forceRefreshBtn = document.getElementById('btn-force-refresh-lobby');
+      if (forceRefreshBtn) {
+        forceRefreshBtn.onclick = (e) => {
+          e.stopPropagation();
+          this.showToast('Checking connection with friend... 🔄', 'info');
+          if (window.multiplayerManager?.checkConnectionStatus) {
+            window.multiplayerManager.checkConnectionStatus();
+          }
+        };
+      }
     }
     if (statusDot) {
       statusDot.style.background = '#f59e0b';
@@ -873,7 +901,7 @@ class App {
 
     // When opponent connects:
     // 1) Change waiting status to show friend with avatar & ready indicator
-    // 2) SHOW and Upgrade Start button to prominent green "START MATCH WITH [FRIEND] 🚀"
+    // 2) Upgrade Start button to prominent pulsing green "START MATCH WITH [FRIEND] 🚀"
     // 3) Only room owner (Host) can click to start!
     window.multiplayerManager.onPlayerJoined = (guestName, guestAvatar) => {
       const friendDisplayName = (guestName && guestName.trim()) ? guestName.trim() : 'Friend';
@@ -898,7 +926,7 @@ class App {
         if (avatarEl) avatarEl.textContent = guestAvatar || '🦊';
       }
 
-      // NOW REVEAL the start match button ONLY FOR THE ROOM OWNER!
+      // Upgrade start button with green friend-ready styling and name
       if (hostFooter) hostFooter.style.display = 'flex';
       if (startBtn) {
         startBtn.style.display = 'flex';
@@ -907,16 +935,15 @@ class App {
         if (startBtnText) {
           startBtnText.textContent = `START MATCH WITH ${friendDisplayName.toUpperCase()} 🚀`;
         }
-        startBtn.onclick = () => {
-          window.soundEngine?.playClick();
-          window.multiplayerManager.isMatchStarted = true;
-          // Broadcast match start to guest
-          window.multiplayerManager.sendStartMatch();
-          modal.classList.remove('open');
-          this.startGameWithMode(gameType || window.multiplayerManager.gameType, 'online', hostName, friendDisplayName);
-        };
       }
     };
+
+    // If friend had already joined, immediately update host UI to unlock match
+    if (window.multiplayerManager.hasGuestJoined) {
+      window.multiplayerManager.onPlayerJoined(window.multiplayerManager.guestName, window.multiplayerManager.guestAvatar);
+    } else if (window.multiplayerManager?.checkConnectionStatus) {
+      window.multiplayerManager.checkConnectionStatus();
+    }
   }
 
   openGuestLobbyModal(roomCode, gameType, hostName, guestName, avatar) {
@@ -1074,23 +1101,6 @@ class App {
 
     if (closeLobbyBtn) closeLobbyBtn.addEventListener('click', handleCloseLobby);
     if (lobbyBackdrop) lobbyBackdrop.addEventListener('click', handleCloseLobby);
-
-    if (startNowBtn) {
-      startNowBtn.addEventListener('click', () => {
-        // STRICT ENFORCEMENT: Never start without friend joined!
-        if (!window.multiplayerManager || !window.multiplayerManager.connected) {
-          this.showToast('🔒 Waiting for friend to join! Share link to play together.', 'warning');
-          return;
-        }
-        window.multiplayerManager.isMatchStarted = true;
-        if (window.multiplayerManager.isHost) {
-          window.multiplayerManager.sendStartMatch();
-        }
-        document.getElementById('modal-room-lobby')?.classList.remove('open');
-        const gType = this.pendingGameType || window.multiplayerManager.gameType || 'ludo';
-        this.startGameWithMode(gType, 'online', window.multiplayerManager.hostName, window.multiplayerManager.guestName);
-      });
-    }
 
     ['ludo', 'ttt', 'chess'].forEach(g => {
       const btn = document.getElementById(`btn-copy-${g}-room`);
@@ -1313,50 +1323,25 @@ class App {
       }
     };
 
-    // 2. Handle Re-Match Request on Friend's device
+    // 2. Handle Re-Match on Friend / Opponent device
     window.multiplayerManager.onRematchRequested = (payload) => {
-      const hostName = payload.hostName || window.multiplayerManager.hostName || 'Room Creator';
-      const gameType = payload.gameType || this.pendingGameType || 'ludo';
+      const gType = payload?.gameType || this.pendingGameType || this.currentScreen || 'ludo';
+      const sender = payload?.senderName || payload?.hostName || 'Friend';
 
       document.getElementById('modal-game-over')?.classList.remove('open');
-
-      this.showConfirm(
-        `${hostName} wants to play a re-match! Do you want to play again?`,
-        'Re-Match Requested! ⚔️',
-        () => {
-          // Friend accepts rematch!
-          window.multiplayerManager.sendAction('REMATCH_ACCEPTED', {
-            guestName: window.multiplayerManager.guestName,
-            gameType
-          });
-          this.showToast('🚀 Re-match accepted! Starting game...', 'success');
-          this.restartCurrentGame(gameType);
-        },
-        {
-          type: 'success',
-          icon: '⚔️',
-          confirmText: 'Accept & Play Again 🚀',
-          cancelText: 'Decline & Leave 🚪',
-          onCancel: () => {
-            window.multiplayerManager.sendAction('PLAYER_LEFT', {
-              sender: 'guest',
-              name: window.multiplayerManager.guestName,
-              reason: 'declined_rematch'
-            });
-            this.returnToHome(true);
-          }
-        }
-      );
+      document.querySelectorAll('.app-popup-overlay').forEach(el => el.remove());
+      this.showToast(`🚀 ${sender} started a re-match! Match starting...`, 'success');
+      this.restartCurrentGame(gType);
     };
 
     // 3. Handle Re-Match Accepted on Owner's device
     window.multiplayerManager.onRematchAccepted = (payload) => {
-      const guestName = payload.guestName || window.multiplayerManager.guestName || 'Friend';
-      const gameType = payload.gameType || this.pendingGameType || 'ludo';
-
+      const gType = payload?.gameType || this.pendingGameType || this.currentScreen || 'ludo';
+      const sender = payload?.guestName || 'Friend';
       document.getElementById('modal-game-over')?.classList.remove('open');
-      this.showToast(`🎉 ${guestName} accepted the re-match! Match starting! 🚀`, 'success');
-      this.restartCurrentGame(gameType);
+      document.querySelectorAll('.app-popup-overlay').forEach(el => el.remove());
+      this.showToast(`🎉 ${sender} accepted re-match! Match starting! 🚀`, 'success');
+      this.restartCurrentGame(gType);
     };
 
     // 4. Handle Match Started notification (when host starts the match)
@@ -1418,42 +1403,67 @@ class App {
   }
 
   requestRematch() {
-    if (window.multiplayerManager && window.multiplayerManager.roomCode && window.multiplayerManager.isHost) {
-      window.multiplayerManager.sendAction('REMATCH_REQUEST', {
-        hostName: window.multiplayerManager.hostName,
-        gameType: this.pendingGameType || this.currentScreen
+    const isOnline = Boolean(window.multiplayerManager && window.multiplayerManager.isConnected);
+    if (isOnline) {
+      const type = this.pendingGameType || this.currentScreen || 'ludo';
+      const sender = window.multiplayerManager.isHost ? window.multiplayerManager.hostName : window.multiplayerManager.guestName;
+      window.multiplayerManager.sendAction('START_REMATCH', {
+        gameType: type,
+        senderName: sender,
+        timestamp: Date.now()
       });
-      this.showToast('⏳ Re-match request sent to friend! Waiting for friend to accept...', 'info');
+      this.restartCurrentGame(type);
     }
   }
 
   restartCurrentGame(gameType) {
-    const type = gameType || this.pendingGameType || this.currentScreen;
+    const type = gameType || this.pendingGameType || this.currentScreen || 'ludo';
+    const isOnline = Boolean(window.multiplayerManager && window.multiplayerManager.isConnected);
+
+    // Always close Game Over modal and remove any confirmation overlays
+    document.getElementById('modal-game-over')?.classList.remove('open');
+    document.querySelectorAll('.app-popup-overlay').forEach(el => el.remove());
+
+    if (isOnline) {
+      const host = window.multiplayerManager.hostName || 'Player 1';
+      const guest = window.multiplayerManager.guestName || 'Player 2';
+      this.startGameWithMode(type, 'online', host, guest);
+      this.showToast('🚀 New match started!', 'success');
+      return;
+    }
+
     if (type === 'ludo') {
-      window.ludoGame.setup({
-        playerCount: window.ludoGame.twoPlayerFormat === 'double' ? 2 : window.ludoGame.players.length,
-        twoPlayerFormat: window.ludoGame.twoPlayerFormat,
-        mode: window.ludoGame.isTeamMode ? 'team' : 'individual',
-        difficulty: window.ludoGame.difficulty,
-        isOnlineRoom: true
-      });
-    } else if (targetType === 'tictactoe') {
-      window.ticTacToeGame.setup({
-        mode: 'online',
-        difficulty: window.ticTacToeGame.difficulty,
-        humanSymbol: window.multiplayerManager.isHost ? 'X' : 'O',
-        playerXName: window.ticTacToeGame.playerXName,
-        playerOName: window.ticTacToeGame.playerOName
-      });
-    } else if (targetType === 'chess') {
-      window.chessGame.setup({
-        mode: 'online',
-        difficulty: window.chessGame.difficulty,
-        playerColor: window.multiplayerManager.isHost ? 'w' : 'b',
-        timerMinutes: window.chessGame.clocks.max > 0 ? window.chessGame.clocks.max / 60 : 0,
-        whiteName: window.chessGame.whiteName,
-        blackName: window.chessGame.blackName
-      });
+      if (window.ludoGame) {
+        window.ludoGame.setup({
+          playerCount: window.ludoGame.twoPlayerFormat === 'double' ? 2 : (window.ludoGame.players ? window.ludoGame.players.length : 2),
+          twoPlayerFormat: window.ludoGame.twoPlayerFormat || 'single',
+          mode: window.ludoGame.isTeamMode ? 'team' : 'individual',
+          difficulty: window.ludoGame.difficulty || 'medium',
+          isOnlineRoom: false,
+          playersConfig: window.ludoGame.players ? window.ludoGame.players.reduce((acc, p) => {
+            acc[p.color] = { name: p.name, avatar: p.avatar, isAI: p.isAI, isRemote: false };
+            return acc;
+          }, {}) : undefined
+        });
+      }
+      this.showToast('🎲 Ludo match restarted!', 'success');
+    } else if (type === 'tictactoe') {
+      if (window.ticTacToeGame) {
+        window.ticTacToeGame.restartRound();
+      }
+      this.showToast('⭕ Tic-Tac-Toe restarted!', 'success');
+    } else if (type === 'chess') {
+      if (window.chessGame) {
+        window.chessGame.setup({
+          mode: window.chessGame.mode || 'ai',
+          difficulty: window.chessGame.difficulty || 'medium',
+          playerColor: window.chessGame.playerColor || 'w',
+          timerMinutes: window.chessGame.clocks && window.chessGame.clocks.max > 0 ? window.chessGame.clocks.max / 60 : 10,
+          whiteName: window.chessGame.whiteName || 'White',
+          blackName: window.chessGame.blackName || 'Black'
+        });
+      }
+      this.showToast('♟️ Chess match restarted!', 'success');
     }
   }
 
@@ -1575,32 +1585,32 @@ class App {
 
     playAgainBtn.onclick = () => {
       modal.classList.remove('open');
-      if (window.multiplayerManager && window.multiplayerManager.roomCode) {
-        if (window.multiplayerManager.isHost) {
-          this.requestRematch();
-        } else {
-          this.showToast('Waiting for Room Owner to launch re-match... ⏳', 'info');
-          window.multiplayerManager.sendAction('REMATCH_REQUEST', {
-            hostName: window.multiplayerManager.guestName,
-            gameType
-          });
-        }
+      const isOnline = Boolean(window.multiplayerManager && window.multiplayerManager.isConnected);
+      if (isOnline) {
+        window.soundEngine?.playClick();
+        const sender = window.multiplayerManager.isHost ? window.multiplayerManager.hostName : window.multiplayerManager.guestName;
+        window.multiplayerManager.sendAction('START_REMATCH', {
+          gameType: gameType || this.pendingGameType || this.currentScreen,
+          senderName: sender,
+          timestamp: Date.now()
+        });
+        this.restartCurrentGame(gameType);
         return;
       }
-      if (onPlayAgain) onPlayAgain();
+      if (onPlayAgain) {
+        onPlayAgain();
+      } else {
+        this.restartCurrentGame(gameType);
+      }
     };
 
     restartBtn.onclick = () => {
       modal.classList.remove('open');
-      if (window.multiplayerManager && window.multiplayerManager.roomCode) {
-        if (window.multiplayerManager.isHost) {
-          this.requestRematch();
-        } else {
-          this.showToast('Waiting for Room Owner to launch re-match... ⏳', 'info');
-        }
-        return;
+      if (onRestart) {
+        onRestart();
+      } else {
+        this.restartCurrentGame(gameType);
       }
-      if (onRestart) onRestart();
     };
 
     homeBtn.onclick = () => {
