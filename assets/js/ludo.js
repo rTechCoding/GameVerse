@@ -96,9 +96,21 @@ class RealLudoGame {
     this.difficulty = 'medium';
     this.isOnlineRoom = false;
     this.winners = [];
+    this.isMovingPawn = false;
+    this.activeStepInterval = null;
+    this.activeReturnInterval = null;
   }
 
   setup(options = {}) {
+    if (this.activeStepInterval) {
+      clearInterval(this.activeStepInterval);
+      this.activeStepInterval = null;
+    }
+    if (this.activeReturnInterval) {
+      clearInterval(this.activeReturnInterval);
+      this.activeReturnInterval = null;
+    }
+    this.isMovingPawn = false;
     this.isTeamMode = options.mode === 'team';
     this.difficulty = options.difficulty || 'medium';
     this.isOnlineRoom = !!options.isOnlineRoom;
@@ -177,8 +189,7 @@ class RealLudoGame {
     return this.players[this.currentTurnIndex];
   }
 
-  isCurrentPlayerLocal() {
-    const p = this.getCurrentPlayer();
+  isPlayerLocal(p) {
     if (!p) return false;
     if (p.isAI) return false;
     if (this.isOnlineRoom) {
@@ -195,8 +206,13 @@ class RealLudoGame {
     return true;
   }
 
+  isCurrentPlayerLocal() {
+    return this.isPlayerLocal(this.getCurrentPlayer());
+  }
+
   rollDice(isRemoteAction = false, remoteValue = null) {
     if (!this.gameActive) return;
+    if (this.isMovingPawn) return;
     if (!isRemoteAction && (!this.canRoll || this.hasRolled || this.isRolling)) return;
     
     if (!isRemoteAction && this.isOnlineRoom) {
@@ -250,16 +266,46 @@ class RealLudoGame {
 
       if (this.consecutiveSixes === 3) {
         this.consecutiveSixes = 0;
+        this.hasRolled = false;
+        this.canRoll = false;
+
+        if (window.soundEngine?.playAlert) {
+          window.soundEngine.playAlert();
+        }
+
+        const currPlayer = this.getCurrentPlayer();
+        const isLocal = this.isCurrentPlayerLocal();
+        const forfeitNotice = isLocal 
+          ? '🚫 3 Consecutive 6s Rolled! 3rd six cancelled & turn forfeited.' 
+          : `🚫 3 Consecutive 6s by ${currPlayer.name}! Turn forfeited.`;
+
         if (window.app) {
-          window.app.showPopup({
-            title: 'Turn Forfeited! 🚫',
-            message: 'Three consecutive 6s rolled! According to official championship rules, the turn is immediately forfeited.',
-            type: 'warning',
-            icon: '🎲',
-            confirmText: 'Pass Turn ➔'
+          window.app.showToast(forfeitNotice, 'warning', '🎲');
+        }
+
+        // Broadcast turn pass to multiplayer opponent
+        if (!isRemoteAction && this.isOnlineRoom && window.multiplayerManager) {
+          window.multiplayerManager.sendAction('LUDO_PASS_TURN', {
+            nextTurnIndex: (this.currentTurnIndex + 1) % this.players.length,
+            reason: 'three_sixes_forfeit'
           });
         }
-        setTimeout(() => this.passTurn(), 900);
+
+        // Render turn bar with forfeit notice
+        const turnBar = document.getElementById('ludo-live-turn-bar');
+        if (turnBar) {
+          const pill = turnBar.querySelector('.live-turn-status-pill');
+          if (pill) {
+            pill.className = 'live-turn-status-pill pill-is-opp';
+            pill.textContent = '🚫 3x SIXES! TURN FORFEITED';
+          }
+          const prompt = turnBar.querySelector('.live-player-sub');
+          if (prompt) {
+            prompt.textContent = 'Three consecutive 6s rolled. 3rd six cancelled per official Ludo rules.';
+          }
+        }
+
+        setTimeout(() => this.passTurn(), 950);
         return;
       }
 
@@ -328,6 +374,7 @@ class RealLudoGame {
 
   moveToken(color, tokenId, isRemoteAction = false) {
     if (!this.gameActive) return;
+    if (this.isMovingPawn) return;
     if (!isRemoteAction && !this.hasRolled) return;
     const player = this.getCurrentPlayer();
     if (player.color !== color) return;
@@ -361,35 +408,170 @@ class RealLudoGame {
       });
     }
 
-    /* [PlaySphere Enhancement]: Instant goti move (animation removed during moving time per user request) */
+    /* [PlaySphere Enhancement]: Step-by-step goti transit with smooth slow pacing and authentic audio */
+    this.isMovingPawn = true;
+
     if (token.step === -1) {
-      token.step = 0;
-      window.soundEngine.playYardExit();
-      this.renderPawns();
-      this.checkCellEvents(color, token);
+      this.animateYardExit(color, token, () => {
+        this.isMovingPawn = false;
+        this.checkCellEvents(color, token);
+      });
     } else {
+      const fromStep = token.step;
       const targetStep = token.step + this.diceValue;
-      token.step = targetStep;
-      window.soundEngine.playHop();
-      this.renderPawns();
-      this.checkCellEvents(color, token);
+      this.animateStepMovement(color, token, fromStep, targetStep, () => {
+        this.isMovingPawn = false;
+        this.checkCellEvents(color, token);
+      });
     }
   }
 
-  /* [PlaySphere Enhancement]: Instant yard release without animation */
+  /* [PlaySphere Enhancement]: Yard release with audio and gentle transition */
   animateYardExit(color, token, callback) {
     token.step = 0;
-    window.soundEngine.playYardExit();
+    if (window.soundEngine && window.soundEngine.playYardExit) {
+      window.soundEngine.playYardExit();
+    }
     this.renderPawns();
-    if (callback) callback();
+    const pawnEl = document.getElementById(`pawn-svg-${color}-${token.id}`);
+    if (pawnEl) {
+      pawnEl.classList.remove('pawn-step-hop');
+      void pawnEl.offsetWidth;
+      pawnEl.classList.add('pawn-step-hop');
+    }
+    setTimeout(() => {
+      if (callback) callback();
+    }, 280);
   }
 
-  /* [PlaySphere Enhancement]: Instant step movement without slow goti bouncing animation */
-  animateStepMovement(color, token, targetStep, callback) {
-    token.step = targetStep;
-    window.soundEngine.playHop();
-    this.renderPawns();
-    if (callback) callback();
+  /* [PlaySphere Enhancement]: Step-by-step goti transit (1 square at a time) with ascending pitch count & tactile hop */
+  animateStepMovement(color, token, fromStep, targetStep, callback) {
+    if (this.activeStepInterval) {
+      clearInterval(this.activeStepInterval);
+      this.activeStepInterval = null;
+    }
+
+    const totalSteps = targetStep - fromStep;
+    if (totalSteps <= 0) {
+      if (callback) callback();
+      return;
+    }
+
+    let current = fromStep;
+    let stepIndex = 0;
+    const STEP_DELAY = 210; // ~210ms per step gives smooth, clear, slow visibility matching classic Ludo
+
+    this.activeStepInterval = setInterval(() => {
+      if (!this.gameActive) {
+        clearInterval(this.activeStepInterval);
+        this.activeStepInterval = null;
+        if (callback) callback();
+        return;
+      }
+
+      stepIndex++;
+      current++;
+      token.step = current;
+
+      // Play authentic tactile wooden/acrylic step audio with pitch count progression
+      if (window.soundEngine && window.soundEngine.playGotiStep) {
+        window.soundEngine.playGotiStep(stepIndex, totalSteps);
+      } else if (window.soundEngine && window.soundEngine.playHop) {
+        window.soundEngine.playHop();
+      }
+
+      this.renderPawns();
+
+      // Trigger tactile hop animation on the moving goti
+      const pawnEl = document.getElementById(`pawn-svg-${color}-${token.id}`);
+      if (pawnEl) {
+        pawnEl.classList.remove('pawn-step-hop');
+        void pawnEl.offsetWidth;
+        pawnEl.classList.add('pawn-step-hop');
+      }
+
+      if (current >= targetStep) {
+        clearInterval(this.activeStepInterval);
+        this.activeStepInterval = null;
+
+        // Satisfying landing audio effect upon reaching destination square
+        if (window.soundEngine && window.soundEngine.playGotiLand) {
+          window.soundEngine.playGotiLand();
+        }
+
+        // Brief natural settle delay before resolving captures / home finishes
+        setTimeout(() => {
+          if (callback) callback();
+        }, 120);
+      }
+    }, STEP_DELAY);
+  }
+
+  /* [PlaySphere Enhancement]: Step-by-step reverse return to yard on kill (matching Ludo King) */
+  animateCapturedTokenReturn(color, token, fromStep, callback) {
+    if (this.activeReturnInterval) {
+      clearInterval(this.activeReturnInterval);
+      this.activeReturnInterval = null;
+    }
+
+    if (window.soundEngine && window.soundEngine.playCapture) {
+      window.soundEngine.playCapture();
+    }
+
+    // If already in yard or start, drop to yard and finish
+    if (fromStep <= 0) {
+      token.step = -1;
+      this.renderPawns();
+      if (callback) callback();
+      return;
+    }
+
+    let current = fromStep;
+    // Step pacing: ~42ms - 58ms per step backwards gives a brisk, smooth, visible run back
+    const RETURN_DELAY = Math.max(38, Math.min(58, Math.floor(950 / Math.max(1, fromStep))));
+
+    this.activeReturnInterval = setInterval(() => {
+      if (!this.gameActive) {
+        clearInterval(this.activeReturnInterval);
+        this.activeReturnInterval = null;
+        token.step = -1;
+        if (callback) callback();
+        return;
+      }
+
+      current--;
+      token.step = current;
+
+      if (window.soundEngine && window.soundEngine.playGotiReturnStep) {
+        window.soundEngine.playGotiReturnStep(current);
+      }
+
+      this.renderPawns();
+
+      const pawnEl = document.getElementById(`pawn-svg-${color}-${token.id}`);
+      if (pawnEl) {
+        pawnEl.classList.remove('pawn-return-hop');
+        void pawnEl.offsetWidth;
+        pawnEl.classList.add('pawn-return-hop');
+      }
+
+      // Reached starting square 0 -> now enter yard socket (-1)
+      if (current <= 0) {
+        clearInterval(this.activeReturnInterval);
+        this.activeReturnInterval = null;
+
+        setTimeout(() => {
+          token.step = -1;
+          if (window.soundEngine && window.soundEngine.playGotiLand) {
+            window.soundEngine.playGotiLand();
+          }
+          this.renderPawns();
+          setTimeout(() => {
+            if (callback) callback();
+          }, 150);
+        }, RETURN_DELAY + 40);
+      }
+    }, RETURN_DELAY);
   }
 
   checkCellEvents(color, token) {
@@ -413,40 +595,53 @@ class RealLudoGame {
       if (!isSafe) {
         const currPlayer = this.getCurrentPlayer();
         
-        Object.keys(this.tokens).forEach(oppColor => {
-          if (oppColor === color) return;
+        for (let oppColor of Object.keys(this.tokens)) {
+          if (oppColor === color) continue;
           const oppPlayer = this.players.find(p => p.color === oppColor);
-          if (this.isTeamMode && oppPlayer && oppPlayer.team === currPlayer.team) return;
+          if (this.isTeamMode && oppPlayer && oppPlayer.team === currPlayer.team) continue;
 
-          this.tokens[oppColor].forEach(oppTok => {
+          for (let oppTok of this.tokens[oppColor]) {
             // If opponent is also on outer track
             if (oppTok.step >= 0 && oppTok.step <= 50) {
               const oppGlobal = (LUDO_OFFSETS[oppColor] + oppTok.step) % 52;
-              // [PlaySphere Enhancement]: Opponent on any of the 8 safe squares (starts or stars) CANNOT be killed!
-              if (LUDO_SAFE_CELLS.includes(oppGlobal) || isSafe) return;
+              // Opponent on any of the 8 safe squares (starts or stars) CANNOT be killed!
+              if (LUDO_SAFE_CELLS.includes(oppGlobal) || isSafe) continue;
 
               if (oppGlobal === globalPos) {
-                // KILLED! Send back to yard
-                oppTok.step = -1;
-                window.soundEngine.playCapture();
+                // KILLED!
+                const startStep = oppTok.step;
                 earnedExtraTurn = true;
-                this.renderPawns(); // Immediate visual update
+                this.isMovingPawn = true;
 
                 if (window.app) {
-                  window.app.showToast(`${currPlayer.name} KILLED ${oppPlayer.name}'s pawn!`, 'warning', '⚔️');
+                  window.app.showToast(`⚔️ ${currPlayer.name} KILLED ${oppPlayer.name}'s goti! Returning home...`, 'warning', '⚔️');
                 }
 
                 // Broadcast kill to multiplayer
                 if (this.isOnlineRoom && window.multiplayerManager) {
                   window.multiplayerManager.sendAction('LUDO_TOKEN_KILLED', {
                     killedColor: oppColor,
-                    killedTokenId: oppTok.id
+                    killedTokenId: oppTok.id,
+                    fromStep: startStep
                   });
                 }
+
+                // Smoothly animate opponent goti returning step-by-step backwards to base
+                this.animateCapturedTokenReturn(oppColor, oppTok, startStep, () => {
+                  this.isMovingPawn = false;
+                  // Extra roll for the killer!
+                  this.canRoll = true;
+                  this.hasRolled = false;
+                  this.render();
+                  if (this.getCurrentPlayer().isAI) {
+                    setTimeout(() => this.executeAITurn(), 700);
+                  }
+                });
+                return; // Let reverse return animation handle turn resolution
               }
             }
-          });
-        });
+          }
+        }
       }
     }
 
@@ -601,6 +796,19 @@ class RealLudoGame {
           this.consecutiveSixes = 0;
         }
 
+        if (this.consecutiveSixes === 3) {
+          this.consecutiveSixes = 0;
+          this.hasRolled = false;
+          this.canRoll = false;
+          if (window.soundEngine?.playAlert) window.soundEngine.playAlert();
+          const curr = this.getCurrentPlayer();
+          if (window.app) {
+            window.app.showToast(`🚫 3 Consecutive 6s by ${curr.name}! Turn forfeited.`, 'warning', '🎲');
+          }
+          this.render();
+          return;
+        }
+
         this.render();
         this.evaluateTurnMoves();
       }, 350);
@@ -618,9 +826,10 @@ class RealLudoGame {
     } else if (action === 'LUDO_TOKEN_KILLED') {
       const tok = this.tokens[payload.killedColor]?.find(t => t.id === payload.killedTokenId);
       if (tok) {
-        tok.step = -1;
-        window.soundEngine.playCapture();
-        this.renderPawns();
+        const fromStep = payload.fromStep !== undefined ? payload.fromStep : tok.step;
+        this.animateCapturedTokenReturn(payload.killedColor, tok, fromStep, () => {
+          this.render();
+        });
       }
     } else if (action === 'LUDO_PASS_TURN') {
       if (payload.nextTurnIndex !== undefined) {
@@ -857,6 +1066,8 @@ class RealLudoGame {
     }
 
     const isLocal = this.isCurrentPlayerLocal();
+    const colorEmoji = currPlayer.color === 'red' ? '🔴' : (currPlayer.color === 'green' ? '🟢' : (currPlayer.color === 'yellow' ? '🟡' : '🔵'));
+    const colorUpper = currPlayer.color.toUpperCase();
     const teamLabel = this.isTeamMode 
       ? (currPlayer.team === 1 ? 'Team 1 (Red & Yellow)' : 'Team 2 (Blue & Green)') 
       : '';
@@ -865,23 +1076,28 @@ class RealLudoGame {
     let actionPrompt = '';
 
     if (this.canRoll && !this.hasRolled) {
-      statusText = isLocal ? '🎲 YOUR TURN — ROLL DICE' : `⏳ ${currPlayer.name}'s turn...`;
-      actionPrompt = isLocal ? 'Tap "Roll Dice" button or tap the 3D die!' : 'Thinking...';
+      if (isLocal) {
+        statusText = `🎲 YOUR TURN (${colorUpper}) — ROLL DICE`;
+        actionPrompt = `👉 Tap the "Roll Dice" button or tap the 3D die!`;
+      } else {
+        statusText = `⏳ ${currPlayer.name}'s Turn (${colorUpper})`;
+        actionPrompt = `Waiting for ${currPlayer.name} to roll dice...`;
+      }
     } else if (this.isRolling) {
-      statusText = '🎲 Rolling dice...';
-      actionPrompt = 'Shaking the cup!';
+      statusText = `🎲 Rolling dice (${colorUpper})...`;
+      actionPrompt = isLocal ? 'Shaking the dice cup!' : `${currPlayer.name} is shaking the dice...`;
     } else if (this.hasRolled) {
       const legalTokens = this.getLegalMoves(currPlayer.color, this.diceValue);
       if (this.diceValue === 6) {
-        statusText = '🎉 ROLLED A 6! EXTRA TURN!';
+        statusText = `🎉 ${isLocal ? 'YOU' : currPlayer.name} ROLLED A 6! (${colorUpper})`;
       } else {
-        statusText = `🎲 Rolled a ${this.diceValue}`;
+        statusText = `🎲 ${isLocal ? 'YOU' : currPlayer.name} ROLLED ${this.diceValue} (${colorUpper})`;
       }
 
       if (legalTokens.length > 0) {
         actionPrompt = isLocal 
-          ? '👉 TAP ANY BLINKING GOTI OR TARGET SQUARE TO MOVE' 
-          : `${currPlayer.name} is making a move...`;
+          ? `👉 TAP YOUR BLINKING ${colorUpper} GOTI TO MOVE` 
+          : `${currPlayer.name} is selecting a ${colorUpper} goti to move...`;
       } else {
         actionPrompt = `No moves available for ${this.diceValue}. Passing turn...`;
       }
@@ -895,6 +1111,7 @@ class RealLudoGame {
             <div class="live-player-title">
               <span class="live-player-avatar">${currPlayer.avatar}</span>
               <strong class="live-player-name">${currPlayer.name}</strong>
+              <span class="badge-color-tag badge-color-${currPlayer.color}">${colorEmoji} ${colorUpper}</span>
               ${isLocal ? '<span class="live-badge-you">YOU</span>' : (currPlayer.isAI ? '<span class="live-badge-bot">BOT</span>' : '<span class="live-badge-opp">OPPONENT</span>')}
               ${teamLabel ? `<span class="live-badge-team">${teamLabel}</span>` : ''}
             </div>
@@ -902,7 +1119,7 @@ class RealLudoGame {
           </div>
         </div>
         <div class="live-turn-right">
-          <div class="live-turn-status-pill">${statusText}</div>
+          <div class="live-turn-status-pill pill-${currPlayer.color} ${isLocal ? 'pill-is-you' : 'pill-is-opp'}">${statusText}</div>
         </div>
       </div>
     `;
@@ -1147,16 +1364,31 @@ class RealLudoGame {
 
     podsContainer.innerHTML = this.players.map(p => {
       const isTurn = curr.color === p.color;
+      const isLocal = this.isPlayerLocal(p);
       const homeTokens = this.tokens[p.color].filter(t => t.step === 56).length;
+      const colorEmoji = p.color === 'red' ? '🔴' : (p.color === 'green' ? '🟢' : (p.color === 'yellow' ? '🟡' : '🔵'));
+      const colorUpper = p.color.toUpperCase();
+
+      const badgeHtml = this.isOnlineRoom 
+        ? (isLocal ? '<span class="live-badge-you">YOU</span>' : '<span class="live-badge-opp">OPPONENT</span>')
+        : (p.isAI ? '<span class="live-badge-bot">BOT</span>' : '');
+
       return `
-        <div class="player-pod pod-${p.color} ${isTurn ? 'active-turn' : ''}">
+        <div class="player-pod pod-${p.color} ${isTurn ? 'active-turn' : ''} ${isLocal ? 'pod-is-local' : 'pod-is-opp'}">
           <div class="pod-avatar-ring">
             <span class="pod-avatar">${p.avatar}</span>
             ${isTurn ? '<div class="turn-pulse-ring"></div>' : ''}
           </div>
           <div class="pod-info">
-            <span class="pod-name">${p.name}</span>
-            <span class="pod-score">Home: ${homeTokens}/4</span>
+            <div class="pod-name-row">
+              <span class="pod-name">${p.name}</span>
+              ${badgeHtml}
+            </div>
+            <div class="pod-meta-row">
+              <span class="badge-color-tag badge-color-${p.color}">${colorEmoji} ${colorUpper}</span>
+              <span class="pod-score">Home: ${homeTokens}/4</span>
+            </div>
+            ${isTurn ? `<div class="pod-turn-status-banner ${isLocal ? 'banner-your-turn' : 'banner-opp-turn'}">${isLocal ? '🎲 YOUR TURN' : '⏳ OPPONENT TURN'}</div>` : ''}
           </div>
         </div>
       `;
@@ -1170,24 +1402,26 @@ class RealLudoGame {
     if (!curr) return;
 
     const isLocal = this.isCurrentPlayerLocal();
+    const colorEmoji = curr.color === 'red' ? '🔴' : (curr.color === 'green' ? '🟢' : (curr.color === 'yellow' ? '🟡' : '🔵'));
+    const colorUpper = curr.color.toUpperCase();
     const legalTokens = this.hasRolled ? this.getLegalMoves(curr.color, this.diceValue) : [];
 
-    // 1. Update Roll Button State & Label
+    // 1. Update Roll Button State & Label with explicit color name
     if (rollBtn) {
       rollBtn.disabled = !this.canRoll || this.hasRolled || !isLocal;
 
       let btnLabel = '';
       if (this.hasRolled) {
         if (this.diceValue === 6) {
-          btnLabel = '🎉 Rolled: 6! (Extra Roll)';
+          btnLabel = `🎉 Rolled 6! (${colorUpper}) Move Goti`;
           rollBtn.classList.add('celebrate-six');
         } else {
-          btnLabel = `Rolled: ${this.diceValue}`;
+          btnLabel = `Rolled ${this.diceValue} (${colorUpper}) Move Goti`;
           rollBtn.classList.remove('celebrate-six');
         }
       } else {
         rollBtn.classList.remove('celebrate-six');
-        btnLabel = isLocal ? 'Roll Dice 🎲' : `${curr.name}'s Turn...`;
+        btnLabel = isLocal ? `Roll Dice 🎲 (${colorUpper})` : `⏳ Waiting for ${curr.name} (${colorUpper})...`;
       }
 
       if (rollBtnText) {
@@ -1202,7 +1436,9 @@ class RealLudoGame {
     const hudDot = document.getElementById('ludo-hud-dot');
     const hudTeam = document.getElementById('ludo-hud-team');
 
-    if (hudName) hudName.textContent = curr.name;
+    if (hudName) {
+      hudName.innerHTML = `${curr.name} <span class="badge-color-tag badge-color-${curr.color}">${colorEmoji} ${colorUpper}</span> ${isLocal ? '<span class="live-badge-you">YOU</span>' : '<span class="live-badge-opp">OPP</span>'}`;
+    }
     if (hudDot) hudDot.className = `hud-player-dot ${curr.color}`;
     if (hudTeam) {
       if (this.isTeamMode) {

@@ -981,6 +981,56 @@ body.light-theme .player-pod.active-turn {
   }
 }
 
+/* [PlaySphere Enhancement]: Tactile step-by-step goti hopping animation matching Ludo King */
+.pawn-step-hop .pawn-body-group {
+  animation: gotiStepBounce 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards !important;
+}
+
+.pawn-step-hop .pawn-ground-shadow {
+  animation: gotiShadowBounce 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards !important;
+}
+
+@keyframes gotiStepBounce {
+  0% {
+    transform: translateY(0px) scale(1, 1);
+  }
+  38% {
+    transform: translateY(-9px) scale(1.12, 1.15);
+  }
+  75% {
+    transform: translateY(-2px) scale(1.03, 0.97);
+  }
+  100% {
+    transform: translateY(0px) scale(1, 1);
+  }
+}
+
+@keyframes gotiShadowBounce {
+  0% {
+    transform: scale(1);
+    opacity: 0.4;
+  }
+  38% {
+    transform: scale(0.62);
+    opacity: 0.2;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 0.4;
+  }
+}
+
+/* [PlaySphere Enhancement]: Captured goti fast reverse return bounce matching Ludo King */
+.pawn-return-hop .pawn-body-group {
+  animation: gotiReturnBounce 0.08s ease-out forwards !important;
+}
+
+@keyframes gotiReturnBounce {
+  0% { transform: translateY(0px) scale(1, 1); }
+  50% { transform: translateY(-5px) scale(0.94, 1.06); }
+  100% { transform: translateY(0px) scale(1, 1); }
+}
+
 /* Pulsing turn highlight ring right around base circle */
 .pawn-turn-ring {
   animation: turnRingGlow 0.9s infinite alternate ease-in-out;
@@ -1191,6 +1241,113 @@ body.light-theme .player-pod.active-turn {
   font-weight: 700;
   color: var(--text-primary);
   white-space: nowrap;
+}
+
+.live-turn-status-pill.pill-is-you {
+  background: rgba(16, 185, 129, 0.16) !important;
+  border-color: #10b981 !important;
+  color: #10b981 !important;
+  font-weight: 800 !important;
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.3);
+}
+
+.live-turn-status-pill.pill-is-opp {
+  background: rgba(245, 158, 11, 0.16) !important;
+  border-color: #f59e0b !important;
+  color: #d97706 !important;
+  font-weight: 800 !important;
+}
+
+/* Color Identity Tags (Red, Yellow, Green, Blue) */
+.badge-color-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 0.65rem;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 9999px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  white-space: nowrap;
+}
+
+.badge-color-red {
+  background: rgba(244, 63, 94, 0.16);
+  color: #f43f5e;
+  border: 1px solid rgba(244, 63, 94, 0.35);
+}
+
+.badge-color-green {
+  background: rgba(16, 185, 129, 0.16);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.35);
+}
+
+.badge-color-yellow {
+  background: rgba(245, 158, 11, 0.18);
+  color: #d97706;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+}
+
+.badge-color-blue {
+  background: rgba(14, 165, 233, 0.16);
+  color: #0284c7;
+  border: 1px solid rgba(14, 165, 233, 0.35);
+}
+
+/* Enhanced Pod Info Structure */
+.pod-name-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.pod-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.pod-turn-status-banner {
+  font-size: 0.62rem;
+  font-weight: 800;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-top: 3px;
+  letter-spacing: 0.3px;
+  display: inline-block;
+  animation: pulseTurnBanner 1.2s infinite alternate;
+}
+
+.banner-your-turn {
+  background: #10b981;
+  color: #ffffff;
+}
+
+.banner-opp-turn {
+  background: #64748b;
+  color: #ffffff;
+}
+
+@keyframes pulseTurnBanner {
+  0% { opacity: 0.82; transform: scale(0.98); }
+  100% { opacity: 1; transform: scale(1.02); }
+}
+
+.player-pod.pod-is-local {
+  box-shadow: 0 0 0 1px rgba(16, 185, 129, 0.3);
+}
+
+.player-pod.active-turn.pod-is-local {
+  border-color: #10b981 !important;
+  box-shadow: 0 0 16px rgba(16, 185, 129, 0.45) !important;
+}
+
+.player-pod.active-turn.pod-is-opp {
+  border-color: #f59e0b !important;
+  box-shadow: 0 0 16px rgba(245, 158, 11, 0.35) !important;
 }
 
 /* ==========================================================================

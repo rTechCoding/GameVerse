@@ -290,22 +290,35 @@ class TicTacToeGame {
     const nameXEl = document.getElementById('ttt-name-x');
     const nameOEl = document.getElementById('ttt-name-o');
 
+    const isOnline = (this.mode === 'online');
+    const isHost = window.multiplayerManager?.isHost;
+    const isMyTurn = isOnline ? ((this.currentPlayer === 'X' && isHost) || (this.currentPlayer === 'O' && !isHost)) : (this.mode === 'ai' ? this.currentPlayer === this.humanPlayer : true);
+
     if (scoreXEl) scoreXEl.textContent = this.scores.X;
     if (scoreOEl) scoreOEl.textContent = this.scores.O;
     if (scoreDrawEl) scoreDrawEl.textContent = this.scores.draw;
-    if (nameXEl) nameXEl.textContent = this.playerXName;
-    if (nameOEl) nameOEl.textContent = this.playerOName;
+
+    if (nameXEl) {
+      const badgeX = isOnline ? (isHost ? '<span class="live-badge-you">YOU</span>' : '<span class="live-badge-opp">OPP</span>') : '';
+      nameXEl.innerHTML = `${this.playerXName} (X) ${badgeX}`;
+    }
+    if (nameOEl) {
+      const badgeO = isOnline ? (!isHost ? '<span class="live-badge-you">YOU</span>' : '<span class="live-badge-opp">OPP</span>') : (this.mode === 'ai' ? '<span class="live-badge-bot">BOT</span>' : '');
+      nameOEl.innerHTML = `${this.playerOName} (O) ${badgeO}`;
+    }
 
     if (statusEl) {
       if (!this.gameActive && this.winningCombo) {
         const winner = this.board[this.winningCombo[0]];
-        statusEl.innerHTML = `<span class="badge victory">Winner: ${winner === 'X' ? this.playerXName : this.playerOName}</span>`;
+        const winnerName = winner === 'X' ? this.playerXName : this.playerOName;
+        statusEl.innerHTML = `<span class="badge victory">Winner: ${winnerName} (${winner})</span>`;
       } else if (!this.gameActive) {
         statusEl.innerHTML = `<span class="badge draw">Draw Match</span>`;
       } else {
         const currentName = this.currentPlayer === 'X' ? this.playerXName : this.playerOName;
         const colorClass = this.currentPlayer === 'X' ? 'symbol-x' : 'symbol-o';
-        statusEl.innerHTML = `Turn: <strong class="${colorClass}">${currentName} (${this.currentPlayer})</strong>`;
+        const turnBadge = isOnline ? (isMyTurn ? '<span class="live-badge-you">YOUR TURN</span>' : '<span class="live-badge-opp">OPPONENT TURN</span>') : '';
+        statusEl.innerHTML = `Turn: <strong class="${colorClass}">${currentName} (${this.currentPlayer})</strong> ${turnBadge}`;
       }
     }
 

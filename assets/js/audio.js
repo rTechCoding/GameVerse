@@ -116,6 +116,87 @@ class SoundEngine {
     } catch (e) {}
   }
 
+  /* [PlaySphere Enhancement]: Authentic wooden/acrylic step tap with pitch progress matching Ludo King */
+  playGotiStep(stepIndex = 1, totalSteps = 6) {
+    if (!this.soundEnabled) return;
+    this.init();
+    if (!this.ctx) return;
+    try {
+      const t = this.ctx.currentTime;
+      // Progressive acoustic pitch (steps 1..6 climb smoothly)
+      const baseFreq = 780 + Math.min(stepIndex, 6) * 48;
+
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(baseFreq, t);
+      osc.frequency.exponentialRampToValueAtTime(baseFreq * 0.36, t + 0.055);
+      gain.gain.setValueAtTime(0.38, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.055);
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start(t);
+      osc.stop(t + 0.06);
+
+      // Tactile wood/plastic impact transient click
+      const popOsc = this.ctx.createOscillator();
+      const popGain = this.ctx.createGain();
+      popOsc.type = 'sine';
+      popOsc.frequency.setValueAtTime(1550 + stepIndex * 65, t);
+      popOsc.frequency.exponentialRampToValueAtTime(450, t + 0.022);
+      popGain.gain.setValueAtTime(0.24, t);
+      popGain.gain.exponentialRampToValueAtTime(0.001, t + 0.022);
+      popOsc.connect(popGain);
+      popGain.connect(this.ctx.destination);
+      popOsc.start(t);
+      popOsc.stop(t + 0.025);
+    } catch (e) {}
+  }
+
+  /* [PlaySphere Enhancement]: Satisfying landing thud upon reaching target square */
+  playGotiLand() {
+    if (!this.soundEnabled) return;
+    this.init();
+    if (!this.ctx) return;
+    try {
+      const t = this.ctx.currentTime;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(490, t);
+      osc.frequency.exponentialRampToValueAtTime(125, t + 0.08);
+      gain.gain.setValueAtTime(0.42, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start(t);
+      osc.stop(t + 0.085);
+    } catch (e) {}
+  }
+
+  /* [PlaySphere Enhancement]: Captured goti fast reverse step tick */
+  playGotiReturnStep(step = 1) {
+    if (!this.soundEnabled) return;
+    this.init();
+    if (!this.ctx) return;
+    try {
+      const t = this.ctx.currentTime;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sine';
+      // Pitch gently drops as goti gets closer to yard (0)
+      const freq = 420 + Math.min(step, 40) * 12;
+      osc.frequency.setValueAtTime(freq, t);
+      osc.frequency.exponentialRampToValueAtTime(freq * 0.45, t + 0.035);
+      gain.gain.setValueAtTime(0.18, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.035);
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start(t);
+      osc.stop(t + 0.04);
+    } catch (e) {}
+  }
+
   playYardExit() {
     if (!this.soundEnabled) return;
     this.init();

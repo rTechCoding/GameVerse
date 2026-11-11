@@ -566,8 +566,18 @@ class TournamentChessGame {
     const nameWEl = document.getElementById('chess-name-w');
     const nameBEl = document.getElementById('chess-name-b');
 
-    if (nameWEl) nameWEl.textContent = this.whiteName;
-    if (nameBEl) nameBEl.textContent = this.blackName;
+    const isOnline = (this.mode === 'online');
+    const isHost = window.multiplayerManager?.isHost;
+    const isMyTurn = isOnline ? ((this.turn === 'w' && isHost) || (this.turn === 'b' && !isHost)) : (this.mode === 'ai' ? this.turn === this.playerColor : true);
+
+    if (nameWEl) {
+      const badgeW = isOnline ? (isHost ? '<span class="live-badge-you">YOU</span>' : '<span class="live-badge-opp">OPP</span>') : '';
+      nameWEl.innerHTML = `${this.whiteName} (White) ${badgeW}`;
+    }
+    if (nameBEl) {
+      const badgeB = isOnline ? (!isHost ? '<span class="live-badge-you">YOU</span>' : '<span class="live-badge-opp">OPP</span>') : (this.mode === 'ai' ? '<span class="live-badge-bot">BOT</span>' : '');
+      nameBEl.innerHTML = `${this.blackName} (Black) ${badgeB}`;
+    }
 
     this.updateClocksUI();
 
@@ -575,7 +585,9 @@ class TournamentChessGame {
       const colorName = this.turn === 'w' ? 'White' : 'Black';
       const checkText = this.inCheck ? ' <span class="badge danger check-badge">CHECK!</span>' : '';
       const turnClass = this.turn === 'w' ? 'chess-turn-white' : 'chess-turn-black';
-      statusEl.innerHTML = `Turn: <strong class="${turnClass}">${colorName}</strong>${checkText}`;
+      const turnBadge = isOnline ? (isMyTurn ? '<span class="live-badge-you">YOUR TURN</span>' : '<span class="live-badge-opp">OPPONENT TURN</span>') : '';
+      const activePlayerName = this.turn === 'w' ? this.whiteName : this.blackName;
+      statusEl.innerHTML = `Turn: <strong class="${turnClass}">${activePlayerName} (${colorName})</strong> ${turnBadge}${checkText}`;
     }
 
     if (capturedWEl) capturedWEl.innerHTML = this.capturedPieces.w.map(p => `<span class="captured-piece">${PIECE_SVGS[p] || ''}</span>`).join('');

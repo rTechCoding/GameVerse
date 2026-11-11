@@ -27,6 +27,7 @@ class MultiplayerManager {
     this.onPlayerLeft = null;
     this.onRematchRequested = null;
     this.onRematchAccepted = null;
+    this.onRematchDeclined = null;
     this.onStatusChange = null;
     this.heartbeatInterval = null;
     this.handshakeInterval = null;
@@ -819,20 +820,27 @@ class MultiplayerManager {
       return;
     }
 
-    if (data.action === 'START_REMATCH' || data.action === 'REMATCH_REQUEST') {
-      console.log('[Multiplayer] Rematch triggered:', data.payload);
-      this.isMatchStarted = true;
+    if (data.action === 'REMATCH_REQUEST') {
+      console.log('[Multiplayer] Rematch request from opponent:', data.payload);
       if (this.onRematchRequested) {
         this.onRematchRequested(data.payload || {});
       }
       return;
     }
 
-    if (data.action === 'REMATCH_ACCEPTED') {
-      console.log('[Multiplayer] Rematch accepted:', data.payload);
+    if (data.action === 'REMATCH_ACCEPTED' || data.action === 'START_REMATCH') {
+      console.log('[Multiplayer] Rematch accepted by friend:', data.payload);
       this.isMatchStarted = true;
       if (this.onRematchAccepted) {
         this.onRematchAccepted(data.payload || {});
+      }
+      return;
+    }
+
+    if (data.action === 'REMATCH_DECLINED') {
+      console.log('[Multiplayer] Rematch declined by opponent:', data.payload);
+      if (this.onRematchDeclined) {
+        this.onRematchDeclined(data.payload || {});
       }
       return;
     }

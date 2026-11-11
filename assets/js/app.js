@@ -11,6 +11,7 @@ class App {
     this.onlineActionType = 'create'; // 'create' | 'join'
     this.pendingJoinData = null; // { roomCode, gameType, hostName }
     this.isBypassingUnloadPrompt = false; // Flag to allow intentional back-to-home reload without popup
+    this.hasPendingRematchRequest = false; // Tracks if local player clicked Re-Match
     this.init();
   }
 
@@ -118,6 +119,9 @@ class App {
       window.ludoGame.gameActive = false;
       if (window.ludoGame.turnTimer) clearInterval(window.ludoGame.turnTimer);
       if (window.ludoGame.aiMoveTimeout) clearTimeout(window.ludoGame.aiMoveTimeout);
+      if (window.ludoGame.activeStepInterval) clearInterval(window.ludoGame.activeStepInterval);
+      if (window.ludoGame.activeReturnInterval) clearInterval(window.ludoGame.activeReturnInterval);
+      window.ludoGame.isMovingPawn = false;
     }
     if (window.ticTacToeGame) {
       window.ticTacToeGame.gameActive = false;
@@ -988,9 +992,11 @@ class App {
     // When Host launches the match, auto-close lobby and start!
     window.multiplayerManager.onMatchStarted = (payload) => {
       console.log('[App] Match started by host!', payload);
-      this.showToast(`🚀 Match started by ${payload.hostName || hostName}! Let's Play!`, 'success');
+      const hName = payload?.hostName || window.multiplayerManager.hostName || hostName || 'Host';
+      const gName = payload?.guestName || window.multiplayerManager.guestName || guestName || 'Friend';
+      this.showToast(`🚀 Match started by ${hName}! Let's Play!`, 'success');
       modal.classList.remove('open');
-      this.startGameWithMode(payload.gameType || gameType, 'online', payload.hostName || hostName, guestName);
+      this.startGameWithMode(payload?.gameType || gameType, 'online', hName, gName);
     };
   }
 
@@ -1323,25 +1329,79 @@ class App {
       }
     };
 
-    // 2. Handle Re-Match on Friend / Opponent device
+    // 2. Handle Re-Match Request on Friend / Opponent device (Shows Accept / Decline prompt)
     window.multiplayerManager.onRematchRequested = (payload) => {
       const gType = payload?.gameType || this.pendingGameType || this.currentScreen || 'ludo';
-      const sender = payload?.senderName || payload?.hostName || 'Friend';
+      const sender = payload?.senderName || payload?.hostName || 'Your friend';
 
+      // If this player also clicked rematch, both want to play! Start immediately!
+      if (this.hasPendingRematchRequest) {
+        this.hasPendingRematchRequest = false;
+        document.getElementById('modal-game-over')?.classList.remove('open');
+        document.querySelectorAll('.app-popup-overlay').forEach(el => el.remove());
+        const myName = window.multiplayerManager.isHost ? window.multiplayerManager.hostName : window.multiplayerManager.guestName;
+        window.multiplayerManager.sendAction('REMATCH_ACCEPTED', {
+          senderName: myName,
+          gameType: gType
+        });
+        this.showToast('🚀 Both agreed! Starting new match...', 'success');
+        this.restartCurrentGame(gType);
+        return;
+      }
+
+      // Close game over modal and prompt user to Accept or Decline
       document.getElementById('modal-game-over')?.classList.remove('open');
       document.querySelectorAll('.app-popup-overlay').forEach(el => el.remove());
-      this.showToast(`🚀 ${sender} started a re-match! Match starting...`, 'success');
-      this.restartCurrentGame(gType);
+
+      this.showConfirm(
+        `<strong>${sender}</strong> wants to play a re-match! Do you want to accept and play again?`,
+        'Re-Match Requested! ⚔️',
+        () => {
+          // User accepted rematch!
+          this.hasPendingRematchRequest = false;
+          const myName = window.multiplayerManager.isHost ? window.multiplayerManager.hostName : window.multiplayerManager.guestName;
+          window.multiplayerManager.sendAction('REMATCH_ACCEPTED', {
+            senderName: myName,
+            gameType: gType
+          });
+          this.showToast('🚀 Re-Match accepted! Starting game...', 'success');
+          this.restartCurrentGame(gType);
+        },
+        {
+          type: 'success',
+          icon: '⚔️',
+          confirmText: 'Accept & Play Again 🚀',
+          cancelText: 'Decline 🚪',
+          onCancel: () => {
+            // User declined rematch
+            this.hasPendingRematchRequest = false;
+            const myName = window.multiplayerManager.isHost ? window.multiplayerManager.hostName : window.multiplayerManager.guestName;
+            window.multiplayerManager.sendAction('REMATCH_DECLINED', {
+              senderName: myName,
+              gameType: gType
+            });
+            this.showToast('Re-match declined. You can play again anytime!', 'info');
+          }
+        }
+      );
     };
 
-    // 3. Handle Re-Match Accepted on Owner's device
+    // 3. Handle Re-Match Accepted on Requester's device
     window.multiplayerManager.onRematchAccepted = (payload) => {
+      this.hasPendingRematchRequest = false;
       const gType = payload?.gameType || this.pendingGameType || this.currentScreen || 'ludo';
-      const sender = payload?.guestName || 'Friend';
+      const sender = payload?.senderName || payload?.guestName || 'Friend';
       document.getElementById('modal-game-over')?.classList.remove('open');
       document.querySelectorAll('.app-popup-overlay').forEach(el => el.remove());
       this.showToast(`🎉 ${sender} accepted re-match! Match starting! 🚀`, 'success');
       this.restartCurrentGame(gType);
+    };
+
+    // 3b. Handle Re-Match Declined on Requester's device
+    window.multiplayerManager.onRematchDeclined = (payload) => {
+      this.hasPendingRematchRequest = false;
+      const sender = payload?.senderName || 'Friend';
+      this.showToast(`❌ ${sender} declined the re-match.`, 'warning');
     };
 
     // 4. Handle Match Started notification (when host starts the match)
@@ -1498,6 +1558,9 @@ class App {
         ? (document.querySelector('input[name="ludo-two-player-format"]:checked')?.value || 'single')
         : 'standard';
 
+      const hostAvatar = isOnline ? (window.multiplayerManager?.hostAvatar || '🥷') : (document.querySelector('.profile-avatar')?.textContent || '🥷');
+      const guestAvatar = isOnline ? (window.multiplayerManager?.guestAvatar || '🦊') : '🦊';
+
       let playersConfig;
       if (count === 2 && twoPlayerFormat === 'double') {
         battleMode = 'team'; // Team mode for 2-player double: Red & Yellow (Team 1) vs Blue & Green (Team 2)
@@ -1505,10 +1568,10 @@ class App {
         const p2AI = !isOnline && (mode === 'ai' ? true : (document.getElementById('ludo-p2-ai')?.checked || false));
 
         playersConfig = {
-          red: { isAI: p1AI, name: `${host} (Red)` },
-          yellow: { isAI: p1AI, name: `${host} (Yellow)` },
-          green: { isAI: p2AI, name: p2AI ? 'Bot Green' : `${guest} (Green)` },
-          blue: { isAI: p2AI, name: p2AI ? 'Bot Blue' : `${guest} (Blue)` }
+          red: { isAI: p1AI, name: `${host}`, avatar: hostAvatar },
+          yellow: { isAI: p1AI, name: `${host}`, avatar: hostAvatar },
+          green: { isAI: p2AI, name: p2AI ? 'Bot Green' : `${guest}`, avatar: guestAvatar },
+          blue: { isAI: p2AI, name: p2AI ? 'Bot Blue' : `${guest}`, avatar: guestAvatar }
         };
       } else {
         const p1AI = !isOnline && (document.getElementById('ludo-p1-ai')?.checked || false);
@@ -1520,10 +1583,10 @@ class App {
         const p4Name = document.getElementById('setup-player4-name')?.value.trim() || 'Blue';
 
         playersConfig = {
-          red: { isAI: p1AI, name: `${host}` },
-          yellow: { isAI: p2AI, name: `${guest}` },
-          green: { isAI: p3AI, name: p3AI ? 'Bot Green' : `${p3Name}` },
-          blue: { isAI: p4AI, name: p4AI ? 'Bot Blue' : `${p4Name}` }
+          red: { isAI: p1AI, name: `${host}`, avatar: hostAvatar },
+          yellow: { isAI: p2AI, name: `${guest}`, avatar: guestAvatar },
+          green: { isAI: p3AI, name: p3AI ? 'Bot Green' : `${p3Name}`, avatar: '👑' },
+          blue: { isAI: p4AI, name: p4AI ? 'Bot Blue' : `${p4Name}`, avatar: '🤖' }
         };
       }
 
@@ -1588,13 +1651,19 @@ class App {
       const isOnline = Boolean(window.multiplayerManager && window.multiplayerManager.isConnected);
       if (isOnline) {
         window.soundEngine?.playClick();
-        const sender = window.multiplayerManager.isHost ? window.multiplayerManager.hostName : window.multiplayerManager.guestName;
-        window.multiplayerManager.sendAction('START_REMATCH', {
-          gameType: gameType || this.pendingGameType || this.currentScreen,
-          senderName: sender,
+        this.hasPendingRematchRequest = true;
+        const myName = window.multiplayerManager.isHost ? window.multiplayerManager.hostName : window.multiplayerManager.guestName;
+        const oppName = window.multiplayerManager.isHost ? window.multiplayerManager.guestName : window.multiplayerManager.hostName;
+        const gType = gameType || this.pendingGameType || this.currentScreen || 'ludo';
+
+        // Broadcast REMATCH_REQUEST to the other player
+        window.multiplayerManager.sendAction('REMATCH_REQUEST', {
+          senderName: myName,
+          gameType: gType,
           timestamp: Date.now()
         });
-        this.restartCurrentGame(gameType);
+
+        this.showToast(`⏳ Re-Match requested! Waiting for ${oppName || 'friend'} to accept...`, 'info', '⚔️');
         return;
       }
       if (onPlayAgain) {
@@ -1842,7 +1911,7 @@ class App {
     dialog.className = `modal-dialog alert-popup-dialog alert-theme-${type}`;
     if (iconEl) iconEl.textContent = icon;
     if (titleEl) titleEl.textContent = title;
-    if (msgEl) msgEl.textContent = message;
+    if (msgEl) msgEl.innerHTML = message;
 
     if (confirmBtn) {
       confirmBtn.textContent = confirmText;
@@ -1888,7 +1957,7 @@ class App {
     this.showPopup({ title, message, type, icon, confirmText: 'Got It! 👍' });
   }
 
-  showConfirm(message, title = 'Confirm Action', onConfirm, { type = 'warning', icon = '⚠️', confirmText = 'Yes, Proceed', cancelText = 'Cancel' } = {}) {
+  showConfirm(message, title = 'Confirm Action', onConfirm, { type = 'warning', icon = '⚠️', confirmText = 'Yes, Proceed', cancelText = 'Cancel', onCancel } = {}) {
     this.showPopup({
       title,
       message,
@@ -1896,7 +1965,8 @@ class App {
       icon,
       confirmText,
       cancelText,
-      onConfirm
+      onConfirm,
+      onCancel
     });
   }
 
