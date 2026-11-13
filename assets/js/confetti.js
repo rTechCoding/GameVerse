@@ -9,7 +9,7 @@ class ConfettiCannon {
     this.animationId = null;
     this.colors = ['#FF2D55', '#4CD964', '#5AC8FA', '#FFCC00', '#FF9500', '#AF52DE', '#FF3B30'];
   }
-
+ 
   init(canvasElement) {
     this.canvas = canvasElement;
     if (this.canvas) {
@@ -18,7 +18,7 @@ class ConfettiCannon {
       window.addEventListener('resize', () => this.resize());
     }
   }
-
+ 
   resize() {
     if (!this.canvas) return;
     this.canvas.width = window.innerWidth;
