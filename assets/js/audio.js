@@ -1,7 +1,7 @@
 /**
- * Web Audio API Sound System
+ * Web Audio API Sound System 
  * Synthesizes sound effects and background ambient music with zero external audio assets.
- */
+ */ 
 class SoundEngine {
   constructor() {
     this.ctx = null;
