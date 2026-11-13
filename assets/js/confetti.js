@@ -1,6 +1,6 @@
 /**
- * Confetti Canvas Celebration Engine
- */
+ * Confetti Canvas Celebration Engine 
+ */ 
 class ConfettiCannon {
   constructor() {
     this.canvas = null;
