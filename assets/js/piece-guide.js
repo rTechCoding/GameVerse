@@ -11,7 +11,7 @@ class PieceGuideEngine {
     this.demoPiecePos = { r: 2, c: 2 };
     this.initDatabase();
   }
-
+  
   initDatabase() {
     this.gameGuides = {
       ludo: {
