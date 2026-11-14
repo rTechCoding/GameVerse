@@ -9,7 +9,7 @@ class PieceGuideEngine {
     this.activePieceKey = 'YARD_6';
     this.animationTimer = null;
     this.demoPiecePos = { r: 2, c: 2 };
-    this.initDatabase();
+    this.initDatabase(); 
   }
   
   initDatabase() {
