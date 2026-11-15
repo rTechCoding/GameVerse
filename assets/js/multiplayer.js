@@ -2,9 +2,9 @@
  * PlaySphere Real-Time Multiplayer System with Custom Player Names
  * Supports Shareable Game Links & 6-Character Game Codes.
  * Real-time cross-device synchronization via WebRTC (PeerJS with Google STUN)
- * with BroadcastChannel & LocalStorage fallback. 
+ * with BroadcastChannel & LocalStorage fallback.
  */ 
-  
+
 class MultiplayerManager {
   constructor() {
     this.isHost = false;
