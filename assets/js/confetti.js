@@ -29,7 +29,7 @@ class ConfettiCannon {
     if (!this.canvas || !this.ctx) return;
     this.resize();
     this.particles = [];
-
+  
     for (let i = 0; i < count; i++) {
       this.particles.push({
         x: this.canvas.width / 2 + (Math.random() - 0.5) * 200,
