@@ -4,7 +4,7 @@
  * Real-time cross-device synchronization via WebRTC (PeerJS with Google STUN)
  * with BroadcastChannel & LocalStorage fallback. 
  */ 
-
+  
 class MultiplayerManager {
   constructor() {
     this.isHost = false;
