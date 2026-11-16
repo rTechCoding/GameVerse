@@ -3,7 +3,7 @@
  * Handles Navigation, Modals, Theme Switching, Screen Routing,
  * Leaderboard & Stats Rendering, Profile Management, and Online Room Sharing with Player Names.
  */
- 
+
 class App {
   constructor() {
     this.currentScreen = 'home';
@@ -14,7 +14,7 @@ class App {
     this.hasPendingRematchRequest = false; // Tracks if local player clicked Re-Match
     this.init();
   }
-
+ 
   init() {
     // Setup Confetti
     const confettiCanvas = document.getElementById('confetti-canvas');
