@@ -7,7 +7,7 @@ class GameStorage {
     this.STORAGE_KEY = 'aura_game_hub_data_v1';
     this.data = this.load();
   }
-
+ 
   getDefaultData() {
     return {
       profile: {
