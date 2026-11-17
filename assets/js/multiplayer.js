@@ -43,7 +43,7 @@ class MultiplayerManager {
     this.hostAckReceived = false;
     this.retryCount = 0;
     this.maxRetries = 10;
-
+ 
     this.initBroadcastChannel();
     this.checkUrlForRoom();
   }
