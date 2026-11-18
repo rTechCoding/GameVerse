@@ -2,6 +2,7 @@
  * Storage & Game Data Manager
  * Handles persistent profile, achievements, stats, leaderboard, and settings.
  */
+
 class GameStorage {
   constructor() {
     this.STORAGE_KEY = 'aura_game_hub_data_v1';
