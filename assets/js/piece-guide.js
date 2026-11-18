@@ -36,7 +36,7 @@ class PieceGuideEngine {
               { r: 3, c: 1, type: 'step', desc: 'Starting Cell' }
             ],
             animPath: [{ r: 4, c: 0 }, { r: 3, c: 1 }, { r: 4, c: 0 }]
-          },
+          }, 
           TRACK_MOVE: {
             key: 'TRACK_MOVE',
             name: 'Track Advance (चाल व कदम)',
