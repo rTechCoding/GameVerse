@@ -10,7 +10,7 @@ class SoundEngine {
     this.musicInterval = null;
     this.musicStep = 0;
   }
-   
+    
   init() {
     if (!this.ctx) {
       const AudioContext = window.AudioContext || window.webkitAudioContext;
