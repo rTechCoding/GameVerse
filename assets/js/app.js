@@ -14,7 +14,7 @@ class App {
     this.hasPendingRematchRequest = false; // Tracks if local player clicked Re-Match
     this.init();
   }
- 
+  
   init() {
     // Setup Confetti
     const confettiCanvas = document.getElementById('confetti-canvas');
