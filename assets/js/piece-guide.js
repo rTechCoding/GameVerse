@@ -10,7 +10,7 @@ class PieceGuideEngine {
     this.animationTimer = null;
     this.demoPiecePos = { r: 2, c: 2 };
     this.initDatabase(); 
-  }
+  } 
  
   initDatabase() {
     this.gameGuides = {
