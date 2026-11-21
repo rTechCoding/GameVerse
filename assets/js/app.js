@@ -2,7 +2,7 @@
  * Main Application Coordinator 
  * Handles Navigation, Modals, Theme Switching, Screen Routing,
  * Leaderboard & Stats Rendering, Profile Management, and Online Room Sharing with Player Names.
- */
+ */ 
 
 class App {
   constructor() {
