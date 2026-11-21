@@ -1,8 +1,8 @@
 /**
  * Interactive Piece & Rules Guide Engine (गोटियों व मोहरों के नियम एवं चालें)
  * Dedicated game-specific guides for Ludo, Chess, and Tic-Tac-Toe with live board simulations.
- */ 
-  
+ */
+ 
 class PieceGuideEngine {
   constructor() {
     this.activeGame = 'ludo';
