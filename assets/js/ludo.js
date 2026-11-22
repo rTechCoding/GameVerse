@@ -8,8 +8,8 @@
  * - Complete International Rules: Roll 6 to exit, extra turns on 6/capture/goal, star safe zones, team mode
  * - Computer AI (Easy/Medium/Hard) with aggressive capture prioritization
  * - Real-time Share Link & Game Code Multiplayer Synchronization with Custom Player Names
- */
-  
+ */ 
+
 const LUDO_OFFSETS = {
   red: 0,
   green: 13,
