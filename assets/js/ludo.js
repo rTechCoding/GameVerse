@@ -9,7 +9,7 @@
  * - Computer AI (Easy/Medium/Hard) with aggressive capture prioritization
  * - Real-time Share Link & Game Code Multiplayer Synchronization with Custom Player Names
  */ 
-
+ 
 const LUDO_OFFSETS = {
   red: 0,
   green: 13,
